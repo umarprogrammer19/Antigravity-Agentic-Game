@@ -13,13 +13,7 @@ enum GameStatus {
   paused,
 }
 
-enum TurnPhase {
-  playerTurn,
-  processing,
-  enemyTurn,
-  animating,
-  transition,
-}
+enum TurnPhase { playerTurn, processing, enemyTurn, animating, transition }
 
 class PlayerState {
   final String playerId;
@@ -87,21 +81,21 @@ class PlayerState {
   }
 
   Map<String, dynamic> toJson() => {
-        'player_id': playerId,
-        'player_class': playerClass,
-        'position': position,
-        'hp': hp,
-        'max_hp': maxHp,
-        'attack': attack,
-        'defense': defense,
-        'turn_count': turnCount,
-        'floors_cleared': floorsCleared,
-        'enemies_killed': enemiesKilled,
-        'score': score,
-        'special_used': specialUsed,
-        'inventory': inventory,
-        'active_buffs': activeBuffs,
-      };
+    'player_id': playerId,
+    'player_class': playerClass,
+    'position': position,
+    'hp': hp,
+    'max_hp': maxHp,
+    'attack': attack,
+    'defense': defense,
+    'turn_count': turnCount,
+    'floors_cleared': floorsCleared,
+    'enemies_killed': enemiesKilled,
+    'score': score,
+    'special_used': specialUsed,
+    'inventory': inventory,
+    'active_buffs': activeBuffs,
+  };
 }
 
 class GameState {
@@ -157,43 +151,55 @@ class GameState {
 }
 
 class GameStateNotifier extends StateNotifier<GameState> {
-  GameStateNotifier() : super(GameState(
-    playerState: PlayerState(
-      playerId: "",
-      playerClass: "Warrior",
-      position: [0,0],
-      hp: 100,
-      maxHp: 100,
-      attack: 10,
-      defense: 5,
-      turnCount: 0,
-      floorsCleared: 0,
-      enemiesKilled: 0,
-      score: 0,
-      specialUsed: false,
-      inventory: [],
-      activeBuffs: {},
-    )));
+  GameStateNotifier()
+    : super(
+        GameState(
+          playerState: PlayerState(
+            playerId: "",
+            playerClass: "Warrior",
+            position: [0, 0],
+            hp: 100,
+            maxHp: 100,
+            attack: 10,
+            defense: 5,
+            turnCount: 0,
+            floorsCleared: 0,
+            enemiesKilled: 0,
+            score: 0,
+            specialUsed: false,
+            inventory: [],
+            activeBuffs: {},
+          ),
+        ),
+      );
 
   void startNewFloor(LevelSchema level) {
-    final enemies = level.enemies.map((e) => {
-      'id': e.id,
-      'type': e.type,
-      'position': e.position,
-      'hp': e.hp,
-      'max_hp': e.maxHp,
-      'attack': e.attack,
-      'defense': e.defense,
-      'behavior': e.behavior,
-      'is_alive': true,
-    }).toList();
+    final enemies = level.enemies
+        .map(
+          (e) => {
+            'id': e.id,
+            'type': e.type,
+            'position': e.position,
+            'hp': e.hp,
+            'max_hp': e.maxHp,
+            'attack': e.attack,
+            'defense': e.defense,
+            'behavior': e.behavior,
+            'is_alive': true,
+          },
+        )
+        .toList();
 
-    final items = level.items.map((i) => {
-      'id': i.id,
-      'type': i.type,
-      'position': i.position,
-      'collected': false,
-    }).toList();
+    final items = level.items
+        .map(
+          (i) => {
+            'id': i.id,
+            'type': i.type,
+            'position': i.position,
+            'collected': false,
+          },
+        )
+        .toList();
 
     state = state.copyWith(
       status: GameStatus.playing,
@@ -202,7 +208,7 @@ class GameStateNotifier extends StateNotifier<GameState> {
       items: items,
       turnPhase: TurnPhase.playerTurn,
     );
-    
+
     // In a real flow, if playerState is null, you'd initialize it here or earlier.
   }
 
@@ -216,14 +222,16 @@ class GameStateNotifier extends StateNotifier<GameState> {
 
   void applyActionResult(ActionResult result) {
     if (state.playerState == null) return;
-    
+
     var newPlayerState = state.playerState!;
     var newEnemies = List<Map<String, dynamic>>.from(state.enemies);
-    
+
     if (result.newPlayerPosition != null) {
-      newPlayerState = newPlayerState.copyWith(position: result.newPlayerPosition);
+      newPlayerState = newPlayerState.copyWith(
+        position: result.newPlayerPosition,
+      );
     }
-    
+
     if (result.enemyKilled && result.enemyIdKilled != null) {
       newEnemies = newEnemies.map((e) {
         if (e['id'] == result.enemyIdKilled) {
@@ -241,12 +249,13 @@ class GameStateNotifier extends StateNotifier<GameState> {
     }
 
     // handle items collected if necessary
-    
+
     state = state.copyWith(
       playerState: newPlayerState,
       enemies: newEnemies,
       lastActionResult: result,
-      turnPhase: TurnPhase.enemyTurn, // Usually moves to enemy turn after player action
+      turnPhase: TurnPhase
+          .enemyTurn, // Usually moves to enemy turn after player action
     );
   }
 
@@ -258,12 +267,12 @@ class GameStateNotifier extends StateNotifier<GameState> {
   }
 
   void addTrace(TraceEntry trace) {
-    state = state.copyWith(
-      sessionTraces: [...state.sessionTraces, trace],
-    );
+    state = state.copyWith(sessionTraces: [...state.sessionTraces, trace]);
   }
 }
 
-final gameStateProvider = StateNotifierProvider<GameStateNotifier, GameState>((ref) {
+final gameStateProvider = StateNotifierProvider<GameStateNotifier, GameState>((
+  ref,
+) {
   return GameStateNotifier();
 });

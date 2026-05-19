@@ -36,21 +36,21 @@ class TraceEntry {
   });
 
   factory TraceEntry.fromJson(Map<String, dynamic> json) => TraceEntry(
-        traceId: json['trace_id'],
-        sessionId: json['session_id'],
-        agent: json['agent'],
-        floorNumber: json['floor_number'],
-        turnNumber: json['turn_number'] ?? 0,
-        step: json['step'],
-        timestamp: json['timestamp'],
-        reasoning: json['reasoning'],
-        toolCalled: json['tool_called'],
-        toolInput: json['tool_input'] ?? {},
-        toolOutput: json['tool_output'] ?? {},
-        decision: json['decision'],
-        durationMs: json['duration_ms'] ?? 0,
-        modelUsed: json['model_used'],
-        fallbackUsed: json['fallback_used'] ?? false,
-        tokensUsed: json['tokens_used'] ?? 0,
-      );
+    traceId: json['trace_id'],
+    sessionId: json['session_id'],
+    agent: json['agent'],
+    floorNumber: json['floor_number'],
+    turnNumber: json['turn_number'] ?? 0,
+    step: json['step'],
+    timestamp: json['timestamp'],
+    reasoning: json['reasoning'],
+    toolCalled: json['tool_called'],
+    toolInput: json['tool_input'] ?? {},
+    toolOutput: json['tool_output'] ?? {},
+    decision: json['decision'],
+    durationMs: json['duration_ms'] ?? 0,
+    modelUsed: json['model_used'],
+    fallbackUsed: json['fallback_used'] ?? false,
+    tokensUsed: json['tokens_used'] ?? 0,
+  );
 }

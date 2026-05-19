@@ -14,11 +14,11 @@ class AuthNotifier extends AsyncNotifier<User?> {
     final sub = _auth.authStateChanges().listen((user) {
       state = AsyncValue.data(user);
     });
-    
+
     ref.onDispose(() {
       sub.cancel();
     });
-    
+
     // Initial state
     return _auth.currentUser;
   }
@@ -27,20 +27,23 @@ class AuthNotifier extends AsyncNotifier<User?> {
     state = const AsyncValue.loading();
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      
+
       // Handle user cancellation gracefully
       if (googleUser == null) {
         state = AsyncValue.data(_auth.currentUser);
         return;
       }
 
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
       final AuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      final UserCredential userCredential = await _auth.signInWithCredential(credential);
+      final UserCredential userCredential = await _auth.signInWithCredential(
+        credential,
+      );
       state = AsyncValue.data(userCredential.user);
     } catch (e, st) {
       state = AsyncValue.error(e, st);

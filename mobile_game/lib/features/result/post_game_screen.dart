@@ -9,6 +9,8 @@ import '../../providers/player_provider.dart';
 import '../../providers/session_provider.dart';
 import '../../services/agent_service.dart';
 import '../../models/narrative_response.dart';
+import '../../widgets/loading_overlay.dart';
+import '../../widgets/error_card.dart';
 
 class PostGameArgs {
   final bool won;
@@ -20,7 +22,7 @@ class PostGameArgs {
   final String? deathCause;
   final String theme;
 
-  PostGameArgs({
+  const PostGameArgs({
     required this.won,
     required this.score,
     required this.floorsCleared,
@@ -41,65 +43,87 @@ class PostGameScreen extends ConsumerStatefulWidget {
   ConsumerState<PostGameScreen> createState() => _PostGameScreenState();
 }
 
-class _PostGameScreenState extends ConsumerState<PostGameScreen> {
+class _PostGameScreenState extends ConsumerState<PostGameScreen>
+    with SingleTickerProviderStateMixin {
   bool _isLoading = true;
-  String? _error;
+  bool _hasError = false;
   NarrativeResponse? _narrative;
   Map<String, dynamic>? _saveResult;
+
+  // Score count-up animation
+  late final AnimationController _scoreController;
+  late final Animation<double> _scoreAnimation;
 
   @override
   void initState() {
     super.initState();
+    _scoreController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+    _scoreAnimation = Tween<double>(
+      begin: 0,
+      end: widget.args.score.toDouble(),
+    ).animate(CurvedAnimation(parent: _scoreController, curve: Curves.easeOut));
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _processPostGame();
     });
   }
 
+  @override
+  void dispose() {
+    _scoreController.dispose();
+    super.dispose();
+  }
+
   Future<void> _processPostGame() async {
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
+
     try {
       final user = ref.read(authProvider).value;
       if (user == null) {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
+        _scoreController.forward();
         return;
       }
 
       final player = ref.read(playerProvider).value;
       final session = ref.read(sessionProvider);
-
       final agentService = AgentService();
 
-      final narrativeFuture = agentService.getNarrative(
-        sessionId: widget.args.sessionId,
-        eventType: widget.args.won ? "session_won" : "player_death",
-        playerClass: player?.playerClass ?? "warrior",
-        floorNumber: widget.args.floorsCleared,
-        theme: widget.args.theme,
-        context: {
-          "enemies_killed": widget.args.enemiesKilled,
-          "turns_taken": widget.args.totalTurns,
-        },
-      );
-
-      final saveFuture = agentService.saveSession(
-        playerId: user.uid,
-        sessionId: widget.args.sessionId,
-        won: widget.args.won,
-        score: widget.args.score,
-        floorsCleared: widget.args.floorsCleared,
-        enemiesKilled: widget.args.enemiesKilled,
-        deathCause: widget.args.deathCause,
-        deathFloor: widget.args.won ? null : widget.args.floorsCleared,
-        playerClass: player?.playerClass ?? "warrior",
-        theme: widget.args.theme,
-        difficultyLevel: session.plan?.difficultyLevel ?? 3,
-        totalTurns: widget.args.totalTurns,
-        sessionDurationSeconds: 120, // Placeholder
-        aiDecisionsMade: 14, // Placeholder
-      );
-
-      final results = await Future.wait([narrativeFuture, saveFuture]);
+      final results = await Future.wait([
+        agentService.getNarrative(
+          sessionId: widget.args.sessionId,
+          eventType: widget.args.won ? "session_won" : "player_death",
+          playerClass: player?.playerClass ?? "warrior",
+          floorNumber: widget.args.floorsCleared,
+          theme: widget.args.theme,
+          context: {
+            "enemies_killed": widget.args.enemiesKilled,
+            "turns_taken": widget.args.totalTurns,
+          },
+        ),
+        agentService.saveSession(
+          playerId: user.uid,
+          sessionId: widget.args.sessionId,
+          won: widget.args.won,
+          score: widget.args.score,
+          floorsCleared: widget.args.floorsCleared,
+          enemiesKilled: widget.args.enemiesKilled,
+          deathCause: widget.args.deathCause,
+          deathFloor: widget.args.won ? null : widget.args.floorsCleared,
+          playerClass: player?.playerClass ?? "warrior",
+          theme: widget.args.theme,
+          difficultyLevel: session.plan?.difficultyLevel ?? 3,
+          totalTurns: widget.args.totalTurns,
+          sessionDurationSeconds: 120,
+          aiDecisionsMade: 14,
+        ),
+      ]);
 
       if (mounted) {
         setState(() {
@@ -107,13 +131,15 @@ class _PostGameScreenState extends ConsumerState<PostGameScreen> {
           _saveResult = results[1] as Map<String, dynamic>;
           _isLoading = false;
         });
+        _scoreController.forward();
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = e.toString();
+          _hasError = true;
           _isLoading = false;
         });
+        _scoreController.forward();
       }
     }
   }
@@ -126,58 +152,19 @@ class _PostGameScreenState extends ConsumerState<PostGameScreen> {
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 500),
           child: _isLoading
-              ? const Center(
-                  child: CircularProgressIndicator(color: DungeonColors.gold),
+              ? LoadingOverlay(
+                  key: const ValueKey('loading'),
+                  message: 'Saving your session…',
+                  subMessage: 'Consulting the Dungeon Master',
+                  onTimeout: () {
+                    setState(() {
+                      _isLoading = false;
+                      _hasError = true;
+                    });
+                    _scoreController.forward();
+                  },
                 )
-              : _error != null
-              ? _buildErrorState()
               : _buildContent(),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildErrorState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(DungeonSpacing.lg),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.error_outline,
-              color: DungeonColors.crimson,
-              size: 48,
-            ),
-            const SizedBox(height: DungeonSpacing.md),
-            Text("Failed to save session", style: DungeonText.headingMedium),
-            const SizedBox(height: DungeonSpacing.sm),
-            Text(
-              _error!,
-              style: DungeonText.bodyMedium.copyWith(
-                color: DungeonColors.textSecondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: DungeonSpacing.xl),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _isLoading = true;
-                  _error = null;
-                });
-                _processPostGame();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: DungeonColors.surfaceElevated,
-                side: const BorderSide(color: DungeonColors.gold),
-              ),
-              child: const Text(
-                "RETRY",
-                style: TextStyle(color: DungeonColors.gold),
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -185,17 +172,29 @@ class _PostGameScreenState extends ConsumerState<PostGameScreen> {
 
   Widget _buildContent() {
     return SingleChildScrollView(
+      key: const ValueKey('content'),
       padding: const EdgeInsets.all(DungeonSpacing.lg),
       child: Column(
         children: [
           const SizedBox(height: DungeonSpacing.xl),
           if (widget.args.won) _buildWinHeader() else _buildDeathHeader(),
-
           const SizedBox(height: DungeonSpacing.xl),
           _buildScoreCard(),
-
           const SizedBox(height: DungeonSpacing.lg),
-          if (widget.args.won) _buildWinFeedback() else _buildDeathFeedback(),
+
+          if (_hasError)
+            Padding(
+              padding: const EdgeInsets.only(bottom: DungeonSpacing.lg),
+              child: ErrorCard(
+                message:
+                    "Could not save your session. Your score may not be recorded.",
+                onRetry: _processPostGame,
+                onDismiss: () => setState(() => _hasError = false),
+              ),
+            )
+          else ...[
+            if (widget.args.won) _buildWinFeedback() else _buildDeathFeedback(),
+          ],
 
           if (_saveResult?['updated_stats']?['leaderboard_rank'] != null) ...[
             const SizedBox(height: DungeonSpacing.md),
@@ -216,14 +215,10 @@ class _PostGameScreenState extends ConsumerState<PostGameScreen> {
   }
 
   Widget _buildWinHeader() {
-    return Column(
-      children: [
-        Text(
-          "✦ DUNGEON CLEARED ✦",
-          style: DungeonText.displayLarge.copyWith(color: DungeonColors.gold),
-          textAlign: TextAlign.center,
-        ),
-      ],
+    return Text(
+      "✦ DUNGEON CLEARED ✦",
+      style: DungeonText.displayLarge.copyWith(color: DungeonColors.gold),
+      textAlign: TextAlign.center,
     );
   }
 
@@ -257,8 +252,8 @@ class _PostGameScreenState extends ConsumerState<PostGameScreen> {
       padding: const EdgeInsets.all(DungeonSpacing.lg),
       decoration: BoxDecoration(
         color: DungeonColors.surfaceElevated,
-        borderRadius: BorderRadius.circular(DungeonRadius.md.x),
-        border: Border.all(color: DungeonColors.goldDim.withOpacity(0.3)),
+        borderRadius: const BorderRadius.all(DungeonRadius.md),
+        border: Border.all(color: DungeonColors.goldDim.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -267,11 +262,16 @@ class _PostGameScreenState extends ConsumerState<PostGameScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text("SCORE:", style: DungeonText.headingMedium),
-              Text(
-                "${widget.args.score}",
-                style: DungeonText.headingMedium.copyWith(
-                  color: DungeonColors.gold,
-                ),
+              AnimatedBuilder(
+                animation: _scoreAnimation,
+                builder: (context, _) {
+                  return Text(
+                    _formatScore(_scoreAnimation.value.round()),
+                    style: DungeonText.headingMedium.copyWith(
+                      color: DungeonColors.gold,
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -279,29 +279,33 @@ class _PostGameScreenState extends ConsumerState<PostGameScreen> {
             padding: EdgeInsets.symmetric(vertical: DungeonSpacing.sm),
             child: Divider(color: DungeonColors.textDim),
           ),
-          _buildStatRow("Floors Cleared", "${widget.args.floorsCleared}/5"),
+          _StatRow(
+            label: "Floors Cleared",
+            value: "${widget.args.floorsCleared}/5",
+          ),
           const SizedBox(height: DungeonSpacing.xs),
-          _buildStatRow("Enemies Killed", "${widget.args.enemiesKilled}"),
+          _StatRow(
+            label: "Enemies Killed",
+            value: "${widget.args.enemiesKilled}",
+          ),
           const SizedBox(height: DungeonSpacing.xs),
-          _buildStatRow("Turns Taken", "${widget.args.totalTurns}"),
+          _StatRow(label: "Turns Taken", value: "${widget.args.totalTurns}"),
         ],
       ),
     );
   }
 
-  Widget _buildStatRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: DungeonText.bodyMedium.copyWith(
-            color: DungeonColors.textSecondary,
-          ),
-        ),
-        Text(value, style: DungeonText.bodyMedium),
-      ],
-    );
+  String _formatScore(int n) {
+    if (n >= 1000) {
+      final s = n.toString();
+      final buffer = StringBuffer();
+      for (int i = 0; i < s.length; i++) {
+        if (i > 0 && (s.length - i) % 3 == 0) buffer.write(',');
+        buffer.write(s[i]);
+      }
+      return buffer.toString();
+    }
+    return n.toString();
   }
 
   Widget _buildWinFeedback() {
@@ -312,9 +316,9 @@ class _PostGameScreenState extends ConsumerState<PostGameScreen> {
       padding: const EdgeInsets.all(DungeonSpacing.lg),
       decoration: BoxDecoration(
         color: DungeonColors.surfaceElevated,
-        borderRadius: BorderRadius.circular(DungeonRadius.md.x),
+        borderRadius: const BorderRadius.all(DungeonRadius.md),
         border: Border.all(
-          color: DungeonColors.agentNarrative.withOpacity(0.5),
+          color: DungeonColors.agentNarrative.withValues(alpha: 0.5),
         ),
       ),
       child: Column(
@@ -356,8 +360,8 @@ class _PostGameScreenState extends ConsumerState<PostGameScreen> {
       padding: const EdgeInsets.all(DungeonSpacing.lg),
       decoration: BoxDecoration(
         color: DungeonColors.surfaceElevated,
-        borderRadius: BorderRadius.circular(DungeonRadius.md.x),
-        border: Border.all(color: DungeonColors.agentDM.withOpacity(0.5)),
+        borderRadius: const BorderRadius.all(DungeonRadius.md),
+        border: Border.all(color: DungeonColors.agentDM.withValues(alpha: 0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -412,45 +416,53 @@ class _PostGameScreenState extends ConsumerState<PostGameScreen> {
         Row(
           children: [
             Expanded(
-              child: OutlinedButton(
-                onPressed: () {
-                  context.push('/traces/${widget.args.sessionId}');
-                },
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: DungeonColors.textSecondary,
-                  side: const BorderSide(color: DungeonColors.textDim),
-                  padding: const EdgeInsets.symmetric(
-                    vertical: DungeonSpacing.md,
+              child: Semantics(
+                button: true,
+                label: "View AI decisions for this session",
+                child: OutlinedButton(
+                  onPressed: () {
+                    context.push('/traces/${widget.args.sessionId}');
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: DungeonColors.textSecondary,
+                    side: const BorderSide(color: DungeonColors.textDim),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: DungeonSpacing.md,
+                    ),
                   ),
+                  child: const Text("VIEW AI DECISIONS"),
                 ),
-                child: const Text("VIEW AI DECISIONS"),
               ),
             ),
             if (widget.args.won) ...[
               const SizedBox(width: DungeonSpacing.md),
               Expanded(
-                child: OutlinedButton(
-                  onPressed: () {
-                    Clipboard.setData(
-                      ClipboardData(
-                        text:
-                            "I cleared DungeonMind with a score of ${widget.args.score}!",
+                child: Semantics(
+                  button: true,
+                  label: "Share your score",
+                  child: OutlinedButton(
+                    onPressed: () {
+                      HapticFeedback.mediumImpact();
+                      Clipboard.setData(
+                        ClipboardData(
+                          text:
+                              "I cleared DungeonMind with a score of ${widget.args.score}! 🏆",
+                        ),
+                      );
+                      ErrorCard.showSnackBarError(
+                        context,
+                        message: "Score copied to clipboard!",
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: DungeonColors.sapphire,
+                      side: const BorderSide(color: DungeonColors.sapphire),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: DungeonSpacing.md,
                       ),
-                    );
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Score copied to clipboard!"),
-                      ),
-                    );
-                  },
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: DungeonColors.sapphire,
-                    side: const BorderSide(color: DungeonColors.sapphire),
-                    padding: const EdgeInsets.symmetric(
-                      vertical: DungeonSpacing.md,
                     ),
+                    child: const Text("SHARE"),
                   ),
-                  child: const Text("SHARE"),
                 ),
               ),
             ],
@@ -459,21 +471,54 @@ class _PostGameScreenState extends ConsumerState<PostGameScreen> {
         const SizedBox(height: DungeonSpacing.md),
         SizedBox(
           width: double.infinity,
-          child: ElevatedButton(
-            onPressed: () {
-              context.go('/character-select');
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: DungeonColors.gold,
-              foregroundColor: Colors.black87,
-              padding: const EdgeInsets.symmetric(vertical: DungeonSpacing.md),
-            ),
-            child: Text(
-              widget.args.won ? "PLAY AGAIN" : "TRY AGAIN",
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          child: Semantics(
+            button: true,
+            label: widget.args.won ? "Play again" : "Try again",
+            child: ElevatedButton(
+              onPressed: () {
+                HapticFeedback.mediumImpact();
+                context.go('/character-select');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: DungeonColors.gold,
+                foregroundColor: Colors.black87,
+                padding: const EdgeInsets.symmetric(
+                  vertical: DungeonSpacing.md,
+                ),
+              ),
+              child: Text(
+                widget.args.won ? "PLAY AGAIN" : "TRY AGAIN",
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
             ),
           ),
         ),
+      ],
+    );
+  }
+}
+
+class _StatRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _StatRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: DungeonText.bodyMedium.copyWith(
+            color: DungeonColors.textSecondary,
+          ),
+        ),
+        Text(value, style: DungeonText.bodyMedium),
       ],
     );
   }

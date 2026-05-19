@@ -20,15 +20,15 @@ class EnemySpec {
   });
 
   factory EnemySpec.fromJson(Map<String, dynamic> json) => EnemySpec(
-        id: json['id'],
-        type: json['type'],
-        position: List<int>.from(json['position']),
-        hp: json['hp'],
-        maxHp: json['max_hp'],
-        attack: json['attack'],
-        defense: json['defense'],
-        behavior: json['behavior'],
-      );
+    id: json['id'],
+    type: json['type'],
+    position: List<int>.from(json['position']),
+    hp: json['hp'],
+    maxHp: json['max_hp'],
+    attack: json['attack'],
+    defense: json['defense'],
+    behavior: json['behavior'],
+  );
 }
 
 class ItemSpec {
@@ -36,17 +36,13 @@ class ItemSpec {
   final String type;
   final List<int> position;
 
-  ItemSpec({
-    required this.id,
-    required this.type,
-    required this.position,
-  });
+  ItemSpec({required this.id, required this.type, required this.position});
 
   factory ItemSpec.fromJson(Map<String, dynamic> json) => ItemSpec(
-        id: json['id'],
-        type: json['type'],
-        position: List<int>.from(json['position']),
-      );
+    id: json['id'],
+    type: json['type'],
+    position: List<int>.from(json['position']),
+  );
 }
 
 class LevelSchema {
@@ -93,24 +89,26 @@ class LevelSchema {
   });
 
   factory LevelSchema.fromJson(Map<String, dynamic> json) => LevelSchema(
-        levelId: json['level_id'],
-        floorNumber: json['floor_number'],
-        theme: json['theme'],
-        grid: List<List<int>>.from(json['grid'].map((x) => List<int>.from(x))),
-        gridRows: json['grid_rows'],
-        gridCols: json['grid_cols'],
-        playerStart: List<int>.from(json['player_start']),
-        exitPosition: List<int>.from(json['exit_position']),
-        enemies: List<EnemySpec>.from(json['enemies'].map((x) => EnemySpec.fromJson(x))),
-        items: List<ItemSpec>.from(json['items'].map((x) => ItemSpec.fromJson(x))),
-        narrativeHook: json['narrative_hook'],
-        difficultyScore: (json['difficulty_score'] as num).toDouble(),
-        enemyCount: json['enemy_count'],
-        estimatedTurnsToClear: json['estimated_turns_to_clear'],
-        aiUsed: json['ai_used'] ?? true,
-        fallbackUsed: json['fallback_used'] ?? false,
-        cached: json['cached'] ?? false,
-        agentTraceId: json['agent_trace_id'],
-        processingTimeMs: json['processing_time_ms'],
-      );
+    levelId: json['level_id'],
+    floorNumber: json['floor_number'],
+    theme: json['theme'],
+    grid: List<List<int>>.from(json['grid'].map((x) => List<int>.from(x))),
+    gridRows: json['grid_rows'],
+    gridCols: json['grid_cols'],
+    playerStart: List<int>.from(json['player_start']),
+    exitPosition: List<int>.from(json['exit_position']),
+    enemies: List<EnemySpec>.from(
+      json['enemies'].map((x) => EnemySpec.fromJson(x)),
+    ),
+    items: List<ItemSpec>.from(json['items'].map((x) => ItemSpec.fromJson(x))),
+    narrativeHook: json['narrative_hook'],
+    difficultyScore: (json['difficulty_score'] as num).toDouble(),
+    enemyCount: json['enemy_count'],
+    estimatedTurnsToClear: json['estimated_turns_to_clear'],
+    aiUsed: json['ai_used'] ?? true,
+    fallbackUsed: json['fallback_used'] ?? false,
+    cached: json['cached'] ?? false,
+    agentTraceId: json['agent_trace_id'],
+    processingTimeMs: json['processing_time_ms'],
+  );
 }

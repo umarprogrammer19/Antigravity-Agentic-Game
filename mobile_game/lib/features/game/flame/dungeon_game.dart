@@ -30,10 +30,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
   late HUDComponent hud;
   late GameController gameController;
 
-  DungeonGame({
-    required this.levelSchema,
-    this.onGameEvent,
-  });
+  DungeonGame({required this.levelSchema, this.onGameEvent});
 
   void loadLevel(LevelSchema newLevel) {
     levelSchema = newLevel;
@@ -111,14 +108,18 @@ class DungeonGame extends FlameGame with KeyboardEvents {
   ) {
     if (event is KeyDownEvent) {
       String? direction;
-      
-      if (keysPressed.contains(LogicalKeyboardKey.arrowUp) || keysPressed.contains(LogicalKeyboardKey.keyW)) {
+
+      if (keysPressed.contains(LogicalKeyboardKey.arrowUp) ||
+          keysPressed.contains(LogicalKeyboardKey.keyW)) {
         direction = 'up';
-      } else if (keysPressed.contains(LogicalKeyboardKey.arrowDown) || keysPressed.contains(LogicalKeyboardKey.keyS)) {
+      } else if (keysPressed.contains(LogicalKeyboardKey.arrowDown) ||
+          keysPressed.contains(LogicalKeyboardKey.keyS)) {
         direction = 'down';
-      } else if (keysPressed.contains(LogicalKeyboardKey.arrowLeft) || keysPressed.contains(LogicalKeyboardKey.keyA)) {
+      } else if (keysPressed.contains(LogicalKeyboardKey.arrowLeft) ||
+          keysPressed.contains(LogicalKeyboardKey.keyA)) {
         direction = 'left';
-      } else if (keysPressed.contains(LogicalKeyboardKey.arrowRight) || keysPressed.contains(LogicalKeyboardKey.keyD)) {
+      } else if (keysPressed.contains(LogicalKeyboardKey.arrowRight) ||
+          keysPressed.contains(LogicalKeyboardKey.keyD)) {
         direction = 'right';
       }
 
@@ -127,15 +128,22 @@ class DungeonGame extends FlameGame with KeyboardEvents {
         return KeyEventResult.handled;
       }
     }
-    
+
     return KeyEventResult.ignored;
   }
 
   void _handlePlayerMove(String direction) {
-    final targetPos = gameController.getAdjacentPosition([player.gridRow, player.gridCol], direction);
-    
+    final targetPos = gameController.getAdjacentPosition([
+      player.gridRow,
+      player.gridCol,
+    ], direction);
+
     // Validate bounds and wall
-    if (!gameController.isTileWalkable(targetPos[0], targetPos[1], levelSchema.grid)) {
+    if (!gameController.isTileWalkable(
+      targetPos[0],
+      targetPos[1],
+      levelSchema.grid,
+    )) {
       return;
     }
 
@@ -143,7 +151,10 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     final enemyAtTarget = gameController.isEnemy(targetPos, enemies);
     if (enemyAtTarget != null) {
       // Attack!
-      onGameEvent?.call(GameEvent.playerAttacked, data: {'direction': direction, 'target': targetPos});
+      onGameEvent?.call(
+        GameEvent.playerAttacked,
+        data: {'direction': direction, 'target': targetPos},
+      );
       // (Actual damage application would happen via API -> ActionResult update)
     } else {
       // Move!
@@ -151,13 +162,15 @@ class DungeonGame extends FlameGame with KeyboardEvents {
       onGameEvent?.call(GameEvent.playerMoved, data: {'direction': direction});
 
       // Check exit
-      if (player.gridRow == levelSchema.exitPosition[0] && player.gridCol == levelSchema.exitPosition[1]) {
+      if (player.gridRow == levelSchema.exitPosition[0] &&
+          player.gridCol == levelSchema.exitPosition[1]) {
         onGameEvent?.call(GameEvent.floorCleared);
       }
-      
+
       // Check items
       for (var item in levelSchema.items) {
-        if (player.gridRow == item.position[0] && player.gridCol == item.position[1]) {
+        if (player.gridRow == item.position[0] &&
+            player.gridCol == item.position[1]) {
           onGameEvent?.call(GameEvent.itemCollected, data: {'item': item.id});
           // Typically we'd remove it, but rely on updated LevelSchema/GameState to re-render
         }

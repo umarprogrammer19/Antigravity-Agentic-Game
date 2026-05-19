@@ -38,22 +38,23 @@ class SessionPlan {
   });
 
   factory SessionPlan.fromJson(Map<String, dynamic> json) => SessionPlan(
-        sessionId: json['session_id'],
-        playerId: json['player_id'],
-        playerClass: json['player_class'],
-        difficultyLevel: json['difficulty_level'],
-        theme: json['theme'],
-        enemySpeedMultiplier: (json['enemy_speed_multiplier'] as num).toDouble(),
-        itemDropRate: (json['item_drop_rate'] as num).toDouble(),
-        enemyCountMultiplier: (json['enemy_count_multiplier'] as num?)?.toDouble() ?? 1.0,
-        bossDifficulty: json['boss_difficulty'],
-        narrativeIntro: json['narrative_intro'],
-        dmReasoning: json['dm_reasoning'],
-        recommendedStrategy: json['recommended_strategy'],
-        aiUsed: json['ai_used'] ?? true,
-        fallbackUsed: json['fallback_used'] ?? false,
-        agentTraceId: json['agent_trace_id'],
-        processingTimeMs: json['processing_time_ms'],
-        createdAt: json['created_at'],
-      );
+    sessionId: json['session_id'],
+    playerId: json['player_id'],
+    playerClass: json['player_class'],
+    difficultyLevel: json['difficulty_level'],
+    theme: json['theme'],
+    enemySpeedMultiplier: (json['enemy_speed_multiplier'] as num).toDouble(),
+    itemDropRate: (json['item_drop_rate'] as num).toDouble(),
+    enemyCountMultiplier:
+        (json['enemy_count_multiplier'] as num?)?.toDouble() ?? 1.0,
+    bossDifficulty: json['boss_difficulty'],
+    narrativeIntro: json['narrative_intro'],
+    dmReasoning: json['dm_reasoning'],
+    recommendedStrategy: json['recommended_strategy'],
+    aiUsed: json['ai_used'] ?? true,
+    fallbackUsed: json['fallback_used'] ?? false,
+    agentTraceId: json['agent_trace_id'],
+    processingTimeMs: json['processing_time_ms'],
+    createdAt: json['created_at'],
+  );
 }

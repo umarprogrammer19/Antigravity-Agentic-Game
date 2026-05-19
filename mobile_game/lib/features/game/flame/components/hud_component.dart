@@ -51,7 +51,9 @@ class HUDOverlay extends StatelessWidget {
                 ),
                 child: FractionallySizedBox(
                   alignment: Alignment.centerLeft,
-                  widthFactor: maxHp > 0 ? (currentHp / maxHp).clamp(0.0, 1.0) : 0,
+                  widthFactor: maxHp > 0
+                      ? (currentHp / maxHp).clamp(0.0, 1.0)
+                      : 0,
                   child: Container(
                     decoration: BoxDecoration(
                       color: DungeonColors.crimson,
@@ -62,7 +64,7 @@ class HUDOverlay extends StatelessWidget {
               ),
             ],
           ),
-          
+
           // Right: Floor & Turn
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,

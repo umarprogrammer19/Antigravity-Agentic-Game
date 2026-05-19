@@ -121,15 +121,20 @@ class _AiDecisionPanelState extends ConsumerState<AiDecisionPanel> {
   Widget build(BuildContext context) {
     final gameState = ref.watch(gameStateProvider);
     final isThinking = gameState.aiIsThinking;
-    final lastTrace = gameState.sessionTraces.isNotEmpty ? gameState.sessionTraces.last : null;
+    final lastTrace = gameState.sessionTraces.isNotEmpty
+        ? gameState.sessionTraces.last
+        : null;
 
     // Listen for new traces to auto-scroll
-    ref.listen(gameStateProvider.select((s) => s.sessionTraces.length), (prev, next) {
+    ref.listen(gameStateProvider.select((s) => s.sessionTraces.length), (
+      prev,
+      next,
+    ) {
       if (next > (prev ?? 0)) {
         Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
       }
     });
-    
+
     // Immediately update when game state AI status changes to false (meaning processing done)
     ref.listen(gameStateProvider.select((s) => s.aiIsThinking), (prev, next) {
       if (prev == true && next == false) {
@@ -198,7 +203,10 @@ class _AiDecisionPanelState extends ConsumerState<AiDecisionPanel> {
                 Expanded(
                   child: Text(
                     'AI THINKING$dots',
-                    style: DungeonText.headingMedium.copyWith(color: DungeonColors.gold, fontSize: 14),
+                    style: DungeonText.headingMedium.copyWith(
+                      color: DungeonColors.gold,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
               ] else if (lastTrace != null) ...[
@@ -212,9 +220,14 @@ class _AiDecisionPanelState extends ConsumerState<AiDecisionPanel> {
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
-                    color: _getAgentColor(lastTrace.agent).withValues(alpha: 0.2),
+                    color: _getAgentColor(
+                      lastTrace.agent,
+                    ).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
@@ -238,7 +251,9 @@ class _AiDecisionPanelState extends ConsumerState<AiDecisionPanel> {
                 Expanded(
                   child: Text(
                     'No AI traces yet.',
-                    style: DungeonText.bodyMedium.copyWith(color: DungeonColors.textSecondary),
+                    style: DungeonText.bodyMedium.copyWith(
+                      color: DungeonColors.textSecondary,
+                    ),
                   ),
                 ),
               ],
@@ -252,7 +267,9 @@ class _AiDecisionPanelState extends ConsumerState<AiDecisionPanel> {
   Widget _buildExpandedContent(List<TraceEntry> allTraces) {
     final filteredTraces = _selectedFilter == null
         ? allTraces
-        : allTraces.where((t) => _getAgentAbbrev(t.agent) == _selectedFilter).toList();
+        : allTraces
+              .where((t) => _getAgentAbbrev(t.agent) == _selectedFilter)
+              .toList();
 
     return Column(
       children: [
@@ -274,15 +291,27 @@ class _AiDecisionPanelState extends ConsumerState<AiDecisionPanel> {
             children: [
               Row(
                 children: [
-                  const Text('🧠 AI DECISION LOG', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                  const Text(
+                    '🧠 AI DECISION LOG',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: DungeonColors.surface,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Text('${filteredTraces.length}', style: DungeonText.caption),
+                    child: Text(
+                      '${filteredTraces.length}',
+                      style: DungeonText.caption,
+                    ),
                   ),
                 ],
               ),
@@ -310,7 +339,9 @@ class _AiDecisionPanelState extends ConsumerState<AiDecisionPanel> {
                   selectedColor: DungeonColors.gold.withValues(alpha: 0.2),
                   backgroundColor: DungeonColors.surface,
                   labelStyle: DungeonText.caption.copyWith(
-                    color: isSelected ? DungeonColors.gold : DungeonColors.textSecondary,
+                    color: isSelected
+                        ? DungeonColors.gold
+                        : DungeonColors.textSecondary,
                   ),
                 ),
               );
@@ -388,13 +419,21 @@ class _TraceEntryCardState extends State<TraceEntryCard> {
                 children: [
                   Icon(Icons.circle, size: 10, color: widget.agentColor),
                   const SizedBox(width: 8),
-                  Text(widget.agentAbbrev, style: TextStyle(color: widget.agentColor, fontWeight: FontWeight.bold)),
+                  Text(
+                    widget.agentAbbrev,
+                    style: TextStyle(
+                      color: widget.agentColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(width: 4),
                   Text(widget.trace.agent, style: DungeonText.caption),
                   const Spacer(),
                   Text(
                     'Step ${widget.trace.step} · ${widget.trace.timestamp.substring(11, 19)}',
-                    style: DungeonText.caption.copyWith(color: DungeonColors.textDim),
+                    style: DungeonText.caption.copyWith(
+                      color: DungeonColors.textDim,
+                    ),
                   ),
                 ],
               ),
@@ -402,9 +441,13 @@ class _TraceEntryCardState extends State<TraceEntryCard> {
               // Reasoning
               Text(
                 '"${widget.trace.reasoning}"',
-                style: DungeonText.bodyMedium.copyWith(fontStyle: FontStyle.italic),
+                style: DungeonText.bodyMedium.copyWith(
+                  fontStyle: FontStyle.italic,
+                ),
                 maxLines: _expanded ? null : 2,
-                overflow: _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
+                overflow: _expanded
+                    ? TextOverflow.visible
+                    : TextOverflow.ellipsis,
               ),
               const SizedBox(height: 8),
               // Decision
@@ -416,10 +459,16 @@ class _TraceEntryCardState extends State<TraceEntryCard> {
                   Expanded(
                     child: Text(
                       widget.trace.decision,
-                      style: DungeonText.bodyMedium.copyWith(color: DungeonColors.gold, fontWeight: FontWeight.bold),
+                      style: DungeonText.bodyMedium.copyWith(
+                        color: DungeonColors.gold,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                  Text('${widget.trace.durationMs}ms', style: DungeonText.caption),
+                  Text(
+                    '${widget.trace.durationMs}ms',
+                    style: DungeonText.caption,
+                  ),
                 ],
               ),
               if (_expanded) ...[
@@ -452,7 +501,10 @@ class _TraceEntryCardState extends State<TraceEntryCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: DungeonText.caption.copyWith(fontWeight: FontWeight.bold)),
+          Text(
+            label,
+            style: DungeonText.caption.copyWith(fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 2),
           Container(
             width: double.infinity,

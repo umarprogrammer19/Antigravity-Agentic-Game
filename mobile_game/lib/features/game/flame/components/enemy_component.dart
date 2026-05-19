@@ -7,7 +7,8 @@ import '../../../../models/enemy_action.dart';
 import '../dungeon_game.dart';
 import 'tile_map_component.dart';
 
-class EnemyComponent extends PositionComponent with HasGameReference<DungeonGame>, HasPaint {
+class EnemyComponent extends PositionComponent
+    with HasGameReference<DungeonGame>, HasPaint {
   final String id;
   final String type;
   int hp;
@@ -40,7 +41,8 @@ class EnemyComponent extends PositionComponent with HasGameReference<DungeonGame
 
   void _updateScreenPosition() {
     position = Vector2(
-      gridCol * TileMapComponent.tileSize + 2, // +2 to center 28x28 inside 32x32
+      gridCol * TileMapComponent.tileSize +
+          2, // +2 to center 28x28 inside 32x32
       gridRow * TileMapComponent.tileSize + 2,
     );
   }
@@ -93,7 +95,7 @@ class EnemyComponent extends PositionComponent with HasGameReference<DungeonGame
 
     final rect = Rect.fromLTWH(0, 0, width, height);
     final bgPaint = Paint()..color = DungeonColors.crimson;
-    
+
     // Support opacity fading for death animation
     bgPaint.color = bgPaint.color.withValues(alpha: paint.color.a);
     canvas.drawRect(rect, bgPaint);
@@ -114,20 +116,25 @@ class EnemyComponent extends PositionComponent with HasGameReference<DungeonGame
     textPainter.layout();
     textPainter.paint(
       canvas,
-      Offset((width - textPainter.width) / 2, (height - textPainter.height) / 2),
+      Offset(
+        (width - textPainter.width) / 2,
+        (height - textPainter.height) / 2,
+      ),
     );
 
     // HP indicator
     if (isAlive) {
       final hpBarWidth = width;
       final currentHpWidth = (hp / maxHp) * hpBarWidth;
-      
+
       // Background bar
-      final backPaint = Paint()..color = Colors.black.withValues(alpha: paint.color.a);
+      final backPaint = Paint()
+        ..color = Colors.black.withValues(alpha: paint.color.a);
       canvas.drawRect(Rect.fromLTWH(0, height + 2, hpBarWidth, 4), backPaint);
-      
+
       // Current HP
-      final hpPaint = Paint()..color = Colors.redAccent.withValues(alpha: paint.color.a);
+      final hpPaint = Paint()
+        ..color = Colors.redAccent.withValues(alpha: paint.color.a);
       canvas.drawRect(Rect.fromLTWH(0, height + 2, currentHpWidth, 4), hpPaint);
     }
   }

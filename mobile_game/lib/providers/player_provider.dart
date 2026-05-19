@@ -37,7 +37,7 @@ class PlayerNotifier extends AsyncNotifier<PlayerModel> {
   @override
   Future<PlayerModel> build() async {
     final user = ref.watch(authProvider).value;
-    
+
     if (user == null) {
       return PlayerModel(displayName: "Guest");
     }
@@ -51,7 +51,7 @@ class PlayerNotifier extends AsyncNotifier<PlayerModel> {
       losses: 0,
     );
   }
-  
+
   void setClass(String playerClass) {
     if (state.value != null) {
       state = AsyncValue.data(state.value!.copyWith(playerClass: playerClass));

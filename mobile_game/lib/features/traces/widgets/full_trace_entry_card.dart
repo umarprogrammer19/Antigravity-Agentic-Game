@@ -6,10 +6,7 @@ import '../../../models/trace_entry.dart';
 class FullTraceEntryCard extends StatefulWidget {
   final TraceEntry trace;
 
-  const FullTraceEntryCard({
-    super.key,
-    required this.trace,
-  });
+  const FullTraceEntryCard({super.key, required this.trace});
 
   @override
   State<FullTraceEntryCard> createState() => _FullTraceEntryCardState();
@@ -18,7 +15,8 @@ class FullTraceEntryCard extends StatefulWidget {
 class _FullTraceEntryCardState extends State<FullTraceEntryCard> {
   bool _expanded = false;
 
-  Color get _agentColor => {
+  Color get _agentColor =>
+      {
         'DungeonMasterAgent': DungeonColors.agentDM,
         'LevelGeneratorAgent': DungeonColors.agentLevel,
         'RivalAgent': DungeonColors.agentRival,
@@ -27,7 +25,8 @@ class _FullTraceEntryCardState extends State<FullTraceEntryCard> {
       }[widget.trace.agent] ??
       Colors.grey;
 
-  String get _agentAbbrev => {
+  String get _agentAbbrev =>
+      {
         'DungeonMasterAgent': 'DM',
         'LevelGeneratorAgent': 'LG',
         'RivalAgent': 'NPC',
@@ -94,7 +93,7 @@ class _FullTraceEntryCardState extends State<FullTraceEntryCard> {
               ],
             ),
             const Divider(color: DungeonColors.surface),
-            
+
             // Reasoning
             const SizedBox(height: DungeonSpacing.sm),
             const Text(
@@ -114,9 +113,9 @@ class _FullTraceEntryCardState extends State<FullTraceEntryCard> {
                 color: DungeonColors.textPrimary,
               ),
             ),
-            
+
             const SizedBox(height: DungeonSpacing.md),
-            
+
             // Tool Called
             Row(
               children: [
@@ -130,19 +129,24 @@ class _FullTraceEntryCardState extends State<FullTraceEntryCard> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: DungeonColors.surface,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
                     widget.trace.toolCalled,
-                    style: DungeonText.caption.copyWith(color: DungeonColors.textPrimary),
+                    style: DungeonText.caption.copyWith(
+                      color: DungeonColors.textPrimary,
+                    ),
                   ),
                 ),
               ],
             ),
-            
+
             // Expanded Content (Input / Output)
             if (_expanded) ...[
               const SizedBox(height: DungeonSpacing.sm),
@@ -152,7 +156,7 @@ class _FullTraceEntryCardState extends State<FullTraceEntryCard> {
             ],
 
             const SizedBox(height: DungeonSpacing.md),
-            
+
             // Decision
             const Text(
               "✓ DECISION",
@@ -173,7 +177,7 @@ class _FullTraceEntryCardState extends State<FullTraceEntryCard> {
             ),
 
             const SizedBox(height: DungeonSpacing.md),
-            
+
             // Footer (Model, Tokens, Duration)
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -181,7 +185,10 @@ class _FullTraceEntryCardState extends State<FullTraceEntryCard> {
                 if (widget.trace.fallbackUsed)
                   Container(
                     margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: DungeonColors.crimson.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(4),
@@ -189,7 +196,9 @@ class _FullTraceEntryCardState extends State<FullTraceEntryCard> {
                     ),
                     child: Text(
                       "FALLBACK",
-                      style: DungeonText.caption.copyWith(color: DungeonColors.crimsonLight),
+                      style: DungeonText.caption.copyWith(
+                        color: DungeonColors.crimsonLight,
+                      ),
                     ),
                   ),
                 Text(

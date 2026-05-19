@@ -5,7 +5,8 @@ import '../../../../../app/theme.dart';
 import '../dungeon_game.dart';
 import 'tile_map_component.dart';
 
-class PlayerComponent extends PositionComponent with HasGameReference<DungeonGame> {
+class PlayerComponent extends PositionComponent
+    with HasGameReference<DungeonGame> {
   int gridRow;
   int gridCol;
   int hp;
@@ -34,7 +35,8 @@ class PlayerComponent extends PositionComponent with HasGameReference<DungeonGam
 
   void _updateScreenPosition() {
     position = Vector2(
-      gridCol * TileMapComponent.tileSize + 1, // +1 to center slightly within 32x32 tile
+      gridCol * TileMapComponent.tileSize +
+          1, // +1 to center slightly within 32x32 tile
       gridRow * TileMapComponent.tileSize + 1,
     );
   }
@@ -59,7 +61,10 @@ class PlayerComponent extends PositionComponent with HasGameReference<DungeonGam
     }
 
     final grid = game.levelSchema.grid;
-    if (targetRow >= 0 && targetRow < grid.length && targetCol >= 0 && targetCol < grid[targetRow].length) {
+    if (targetRow >= 0 &&
+        targetRow < grid.length &&
+        targetCol >= 0 &&
+        targetCol < grid[targetRow].length) {
       final tile = grid[targetRow][targetCol];
       // Cannot move into wall (0)
       if (tile != 0) {
@@ -90,7 +95,8 @@ class PlayerComponent extends PositionComponent with HasGameReference<DungeonGam
     final rect = Rect.fromLTWH(0, 0, width, height);
 
     // Inner square
-    final paint = Paint()..color = _isFlashing ? DungeonColors.crimson : DungeonColors.sapphire;
+    final paint = Paint()
+      ..color = _isFlashing ? DungeonColors.crimson : DungeonColors.sapphire;
     canvas.drawRect(rect, paint);
 
     // Border

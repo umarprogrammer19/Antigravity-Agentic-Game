@@ -36,20 +36,24 @@ class ActionResult {
   });
 
   factory ActionResult.fromJson(Map<String, dynamic> json) => ActionResult(
-        actionValid: json['action_valid'],
-        invalidReason: json['invalid_reason'],
-        resultType: json['result_type'],
-        newPlayerPosition: json['new_player_position'] != null ? List<int>.from(json['new_player_position']) : null,
-        damageDealt: json['damage_dealt'],
-        damageTaken: json['damage_taken'],
-        enemyKilled: json['enemy_killed'] ?? false,
-        enemyIdKilled: json['enemy_id_killed'],
-        xpGained: json['xp_gained'] ?? 0,
-        floorCleared: json['floor_cleared'] ?? false,
-        sessionOver: json['session_over'] ?? false,
-        itemCollected: json['item_collected'] != null ? ItemSpec.fromJson(json['item_collected']) : null,
-        resultNarrative: json['result_narrative'],
-        aiUsed: json['ai_used'] ?? false,
-        processingTimeMs: json['processing_time_ms'],
-      );
+    actionValid: json['action_valid'],
+    invalidReason: json['invalid_reason'],
+    resultType: json['result_type'],
+    newPlayerPosition: json['new_player_position'] != null
+        ? List<int>.from(json['new_player_position'])
+        : null,
+    damageDealt: json['damage_dealt'],
+    damageTaken: json['damage_taken'],
+    enemyKilled: json['enemy_killed'] ?? false,
+    enemyIdKilled: json['enemy_id_killed'],
+    xpGained: json['xp_gained'] ?? 0,
+    floorCleared: json['floor_cleared'] ?? false,
+    sessionOver: json['session_over'] ?? false,
+    itemCollected: json['item_collected'] != null
+        ? ItemSpec.fromJson(json['item_collected'])
+        : null,
+    resultNarrative: json['result_narrative'],
+    aiUsed: json['ai_used'] ?? false,
+    processingTimeMs: json['processing_time_ms'],
+  );
 }

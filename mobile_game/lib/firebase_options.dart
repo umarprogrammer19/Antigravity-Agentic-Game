@@ -67,7 +67,8 @@ class DefaultFirebaseOptions {
     projectId: 'dungeonmind-ea23c',
     databaseURL: 'https://dungeonmind-ea23c-default-rtdb.firebaseio.com',
     storageBucket: 'dungeonmind-ea23c.firebasestorage.app',
-    iosClientId: '203787925583-c8550m5cqlth6pfmmdsgv1ii4hb6mcbd.apps.googleusercontent.com',
+    iosClientId:
+        '203787925583-c8550m5cqlth6pfmmdsgv1ii4hb6mcbd.apps.googleusercontent.com',
     iosBundleId: 'com.example.mobileGame',
   );
 
@@ -78,7 +79,8 @@ class DefaultFirebaseOptions {
     projectId: 'dungeonmind-ea23c',
     databaseURL: 'https://dungeonmind-ea23c-default-rtdb.firebaseio.com',
     storageBucket: 'dungeonmind-ea23c.firebasestorage.app',
-    iosClientId: '203787925583-c8550m5cqlth6pfmmdsgv1ii4hb6mcbd.apps.googleusercontent.com',
+    iosClientId:
+        '203787925583-c8550m5cqlth6pfmmdsgv1ii4hb6mcbd.apps.googleusercontent.com',
     iosBundleId: 'com.example.mobileGame',
   );
 

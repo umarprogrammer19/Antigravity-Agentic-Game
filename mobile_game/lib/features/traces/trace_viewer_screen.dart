@@ -5,15 +5,14 @@ import 'package:share_plus/share_plus.dart';
 import '../../app/theme.dart';
 import '../../models/trace_entry.dart';
 import '../../services/agent_service.dart';
+import '../../widgets/empty_state_card.dart';
+import '../../widgets/error_card.dart';
 import 'widgets/full_trace_entry_card.dart';
 
 class TraceViewerScreen extends StatefulWidget {
   final String sessionId;
 
-  const TraceViewerScreen({
-    super.key,
-    required this.sessionId,
-  });
+  const TraceViewerScreen({super.key, required this.sessionId});
 
   @override
   State<TraceViewerScreen> createState() => _TraceViewerScreenState();
@@ -21,14 +20,13 @@ class TraceViewerScreen extends StatefulWidget {
 
 class _TraceViewerScreenState extends State<TraceViewerScreen> {
   final AgentService _agentService = AgentService();
-  
+
   bool _isLoading = true;
-  String? _error;
+  bool _hasError = false;
   List<TraceEntry> _allTraces = [];
-  
+
   // Filter state
-  // We use agent names for filtering
-  final Map<String, String> _agentFilterMap = {
+  final Map<String, String> _agentFilterMap = const {
     'DM': 'DungeonMasterAgent',
     'LG': 'LevelGeneratorAgent',
     'NPC': 'RivalAgent',
@@ -47,14 +45,13 @@ class _TraceViewerScreenState extends State<TraceViewerScreen> {
   Future<void> _loadTraces() async {
     setState(() {
       _isLoading = true;
-      _error = null;
+      _hasError = false;
     });
 
     try {
       final traces = await _agentService.getTraces(sessionId: widget.sessionId);
-      // Sort by timestamp ascending
       traces.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-      
+
       if (mounted) {
         setState(() {
           _allTraces = traces;
@@ -64,7 +61,7 @@ class _TraceViewerScreenState extends State<TraceViewerScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = e.toString();
+          _hasError = true;
           _isLoading = false;
         });
       }
@@ -72,7 +69,9 @@ class _TraceViewerScreenState extends State<TraceViewerScreen> {
   }
 
   List<TraceEntry> get _filteredTraces {
-    final selectedAgents = _selectedFilterAbbrevs.map((a) => _agentFilterMap[a]!).toSet();
+    final selectedAgents = _selectedFilterAbbrevs
+        .map((a) => _agentFilterMap[a]!)
+        .toSet();
     return _allTraces.where((t) => selectedAgents.contains(t.agent)).toList();
   }
 
@@ -86,12 +85,17 @@ class _TraceViewerScreenState extends State<TraceViewerScreen> {
     sb.writeln();
 
     for (final trace in _allTraces) {
-      final abbrev = _agentFilterMap.entries.firstWhere((e) => e.value == trace.agent, orElse: () => const MapEntry('?', '?')).key;
-      // "[DM] DUNGEON MASTER — Step 1 of 4"
-      // Assuming agent name ends with "Agent", let's strip it to match spec exactly.
+      final abbrev = _agentFilterMap.entries
+          .firstWhere(
+            (e) => e.value == trace.agent,
+            orElse: () => const MapEntry('?', '?'),
+          )
+          .key;
       final cleanAgentName = trace.agent.replaceAll('Agent', '');
-      
-      sb.writeln("[$abbrev] ${cleanAgentName.toUpperCase()} — Step ${trace.step}");
+
+      sb.writeln(
+        "[$abbrev] ${cleanAgentName.toUpperCase()} — Step ${trace.step}",
+      );
       sb.writeln("Reasoning: ${trace.reasoning}");
       sb.writeln("Decision: ${trace.decision}");
       sb.writeln();
@@ -102,12 +106,18 @@ class _TraceViewerScreenState extends State<TraceViewerScreen> {
 
   Color _getAgentColor(String abbrev) {
     switch (abbrev) {
-      case 'DM': return DungeonColors.agentDM;
-      case 'LG': return DungeonColors.agentLevel;
-      case 'NPC': return DungeonColors.agentRival;
-      case 'NAR': return DungeonColors.agentNarrative;
-      case 'REF': return DungeonColors.agentReferee;
-      default: return Colors.grey;
+      case 'DM':
+        return DungeonColors.agentDM;
+      case 'LG':
+        return DungeonColors.agentLevel;
+      case 'NPC':
+        return DungeonColors.agentRival;
+      case 'NAR':
+        return DungeonColors.agentNarrative;
+      case 'REF':
+        return DungeonColors.agentReferee;
+      default:
+        return Colors.grey;
     }
   }
 
@@ -121,13 +131,15 @@ class _TraceViewerScreenState extends State<TraceViewerScreen> {
         title: Text("AI DECISION LOG", style: DungeonText.headingMedium),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: DungeonColors.textPrimary),
+          tooltip: "Back",
           onPressed: () => context.pop(),
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: DungeonColors.textSecondary),
+            tooltip: "Refresh traces",
             onPressed: _loadTraces,
-          )
+          ),
         ],
       ),
       body: _buildBody(),
@@ -137,35 +149,39 @@ class _TraceViewerScreenState extends State<TraceViewerScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: DungeonColors.gold),
-      );
-    }
-
-    if (_error != null) {
       return Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, color: DungeonColors.crimson, size: 48),
-            const SizedBox(height: 16),
-            Text("Error loading traces", style: DungeonText.headingMedium.copyWith(color: DungeonColors.crimsonLight)),
-            const SizedBox(height: 8),
-            Text(_error!, style: DungeonText.bodyMedium, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: DungeonColors.gold),
-              onPressed: _loadTraces,
-              child: const Text("RETRY", style: TextStyle(color: Colors.black)),
+            const CircularProgressIndicator(color: DungeonColors.gold),
+            const SizedBox(height: DungeonSpacing.md),
+            Text(
+              "Loading AI traces…",
+              style: DungeonText.caption.copyWith(color: DungeonColors.textDim),
             ),
           ],
         ),
       );
     }
 
-    if (_allTraces.isEmpty) {
+    if (_hasError) {
       return Center(
-        child: Text("No AI decisions found for this session.", style: DungeonText.bodyMedium),
+        child: Padding(
+          padding: const EdgeInsets.all(DungeonSpacing.lg),
+          child: ErrorCard(
+            message:
+                "Failed to load AI traces. Check your internet connection.",
+            onRetry: _loadTraces,
+          ),
+        ),
+      );
+    }
+
+    if (_allTraces.isEmpty) {
+      return const EmptyStateCard(
+        icon: Icons.history,
+        title: "No AI decisions recorded",
+        description: "Play a game to see how the AI made decisions.",
       );
     }
 
@@ -179,8 +195,9 @@ class _TraceViewerScreenState extends State<TraceViewerScreen> {
         return "Unknown";
       }
     }
-    
-    final timeRange = "${formatTime(_allTraces.first.timestamp)} → ${formatTime(_allTraces.last.timestamp)}";
+
+    final timeRange =
+        "${formatTime(_allTraces.first.timestamp)} → ${formatTime(_allTraces.last.timestamp)}";
     final agentsUsed = _allTraces.map((t) => t.agent).toSet().length;
 
     // Build list with date group headers
@@ -191,8 +208,8 @@ class _TraceViewerScreenState extends State<TraceViewerScreen> {
       String groupKey = "Unknown Date";
       try {
         final dt = DateTime.parse(trace.timestamp).toLocal();
-        // Group by Date and Hour
-        groupKey = "${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:00";
+        groupKey =
+            "${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:00";
       } catch (_) {}
 
       if (groupKey != currentGroupKey) {
@@ -202,7 +219,10 @@ class _TraceViewerScreenState extends State<TraceViewerScreen> {
             padding: const EdgeInsets.symmetric(vertical: DungeonSpacing.sm),
             child: Text(
               currentGroupKey,
-              style: DungeonText.headingMedium.copyWith(color: DungeonColors.textSecondary, fontSize: 14),
+              style: DungeonText.headingMedium.copyWith(
+                color: DungeonColors.textSecondary,
+                fontSize: 14,
+              ),
             ),
           ),
         );
@@ -214,7 +234,10 @@ class _TraceViewerScreenState extends State<TraceViewerScreen> {
       children: [
         // Header
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: DungeonSpacing.md, vertical: DungeonSpacing.sm),
+          padding: const EdgeInsets.symmetric(
+            horizontal: DungeonSpacing.md,
+            vertical: DungeonSpacing.sm,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -223,10 +246,7 @@ class _TraceViewerScreenState extends State<TraceViewerScreen> {
                 style: DungeonText.bodyMedium,
               ),
               const SizedBox(height: DungeonSpacing.xs),
-              Text(
-                timeRange,
-                style: DungeonText.caption,
-              ),
+              Text(timeRange, style: DungeonText.caption),
             ],
           ),
         ),
@@ -234,7 +254,10 @@ class _TraceViewerScreenState extends State<TraceViewerScreen> {
         // Filters
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: DungeonSpacing.md, vertical: DungeonSpacing.sm),
+          padding: const EdgeInsets.symmetric(
+            horizontal: DungeonSpacing.md,
+            vertical: DungeonSpacing.sm,
+          ),
           child: Row(
             children: [
               _buildFilterChip("ALL", isAll: true),
@@ -264,44 +287,45 @@ class _TraceViewerScreenState extends State<TraceViewerScreen> {
   }
 
   Widget _buildFilterChip(String abbrev, {bool isAll = false}) {
-    final bool isSelected = isAll 
-        ? _selectedFilterAbbrevs.length == _agentFilterMap.length 
+    final bool isSelected = isAll
+        ? _selectedFilterAbbrevs.length == _agentFilterMap.length
         : _selectedFilterAbbrevs.contains(abbrev);
 
     final color = isAll ? DungeonColors.gold : _getAgentColor(abbrev);
 
-    return FilterChip(
-      label: Text(
-        abbrev,
-        style: TextStyle(
-          color: isSelected ? Colors.white : DungeonColors.textSecondary,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+    return Semantics(
+      label: isAll ? "Show all agents" : "Filter by $abbrev agent",
+      child: FilterChip(
+        label: Text(
+          abbrev,
+          style: TextStyle(
+            color: isSelected ? Colors.white : DungeonColors.textSecondary,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
         ),
-      ),
-      selected: isSelected,
-      selectedColor: color.withValues(alpha: 0.3),
-      checkmarkColor: color,
-      backgroundColor: DungeonColors.surfaceElevated,
-      side: BorderSide(
-        color: isSelected ? color : DungeonColors.textDim,
-      ),
-      onSelected: (selected) {
-        setState(() {
-          if (isAll) {
-            if (selected) {
-              _selectedFilterAbbrevs = _agentFilterMap.keys.toSet();
+        selected: isSelected,
+        selectedColor: color.withValues(alpha: 0.3),
+        checkmarkColor: color,
+        backgroundColor: DungeonColors.surfaceElevated,
+        side: BorderSide(color: isSelected ? color : DungeonColors.textDim),
+        onSelected: (selected) {
+          setState(() {
+            if (isAll) {
+              if (selected) {
+                _selectedFilterAbbrevs = _agentFilterMap.keys.toSet();
+              } else {
+                _selectedFilterAbbrevs.clear();
+              }
             } else {
-              _selectedFilterAbbrevs.clear();
+              if (selected) {
+                _selectedFilterAbbrevs.add(abbrev);
+              } else {
+                _selectedFilterAbbrevs.remove(abbrev);
+              }
             }
-          } else {
-            if (selected) {
-              _selectedFilterAbbrevs.add(abbrev);
-            } else {
-              _selectedFilterAbbrevs.remove(abbrev);
-            }
-          }
-        });
-      },
+          });
+        },
+      ),
     );
   }
 
@@ -324,17 +348,30 @@ class _TraceViewerScreenState extends State<TraceViewerScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("This session: ${_allTraces.length} decisions by ${agentCounts.length} AI agents", style: DungeonText.bodyMedium),
+            Text(
+              "This session: ${_allTraces.length} decisions by ${agentCounts.length} AI agents",
+              style: DungeonText.bodyMedium,
+            ),
             const SizedBox(height: DungeonSpacing.xs),
             Row(
               children: [
-                Expanded(child: Text("Total processing: ${totalTime}ms", style: DungeonText.caption)),
-                Expanded(child: Text("Tokens used: $totalTokens", style: DungeonText.caption)),
+                Expanded(
+                  child: Text(
+                    "Total processing: ${totalTime}ms",
+                    style: DungeonText.caption,
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    "Tokens used: $totalTokens",
+                    style: DungeonText.caption,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: DungeonSpacing.md),
-            
-            // Proportional bar (pseudo-pie chart)
+
+            // Proportional bar
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
               child: SizedBox(
@@ -343,32 +380,35 @@ class _TraceViewerScreenState extends State<TraceViewerScreen> {
                   children: _agentFilterMap.entries.map((e) {
                     final count = agentCounts[e.value] ?? 0;
                     if (count == 0) return const SizedBox.shrink();
-                    final flex = count;
                     return Expanded(
-                      flex: flex,
+                      flex: count,
                       child: Container(color: _getAgentColor(e.key)),
                     );
                   }).toList(),
                 ),
               ),
             ),
-            
+
             const SizedBox(height: DungeonSpacing.md),
             Row(
               children: [
                 Expanded(
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.share, size: 18),
-                    label: const Text("EXPORT"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: DungeonColors.gold,
-                      foregroundColor: Colors.black,
+                  child: Semantics(
+                    button: true,
+                    label: "Export traces",
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.share, size: 18),
+                      label: const Text("EXPORT"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: DungeonColors.gold,
+                        foregroundColor: Colors.black,
+                      ),
+                      onPressed: _exportTraces,
                     ),
-                    onPressed: _exportTraces,
                   ),
                 ),
               ],
-            )
+            ),
           ],
         ),
       ),

@@ -15,7 +15,8 @@ class PlayerTacticsProfile {
     required this.turnsObserved,
   });
 
-  factory PlayerTacticsProfile.fromJson(Map<String, dynamic> json) => PlayerTacticsProfile(
+  factory PlayerTacticsProfile.fromJson(Map<String, dynamic> json) =>
+      PlayerTacticsProfile(
         dominantDirection: json['dominant_direction'],
         prefersMelee: json['prefers_melee'] ?? false,
         prefersRanged: json['prefers_ranged'] ?? false,
@@ -45,12 +46,14 @@ class EnemyAction {
   });
 
   factory EnemyAction.fromJson(Map<String, dynamic> json) => EnemyAction(
-        enemyId: json['enemy_id'],
-        actionType: json['action_type'],
-        direction: json['direction'],
-        targetPosition: json['target_position'] != null ? List<int>.from(json['target_position']) : null,
-        damage: json['damage'],
-        reasoning: json['reasoning'],
-        updatedTactics: PlayerTacticsProfile.fromJson(json['updated_tactics']),
-      );
+    enemyId: json['enemy_id'],
+    actionType: json['action_type'],
+    direction: json['direction'],
+    targetPosition: json['target_position'] != null
+        ? List<int>.from(json['target_position'])
+        : null,
+    damage: json['damage'],
+    reasoning: json['reasoning'],
+    updatedTactics: PlayerTacticsProfile.fromJson(json['updated_tactics']),
+  );
 }

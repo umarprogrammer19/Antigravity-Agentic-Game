@@ -18,7 +18,12 @@ class TileMapComponent extends Component {
     for (int r = 0; r < grid.length; r++) {
       for (int c = 0; c < grid[r].length; c++) {
         final tileValue = grid[r][c];
-        final rect = Rect.fromLTWH(c * tileSize, r * tileSize, tileSize, tileSize);
+        final rect = Rect.fromLTWH(
+          c * tileSize,
+          r * tileSize,
+          tileSize,
+          tileSize,
+        );
         Paint paint = Paint();
 
         switch (tileValue) {
@@ -48,14 +53,25 @@ class TileMapComponent extends Component {
     if (exitPos.length >= 2) {
       final r = exitPos[0];
       final c = exitPos[1];
-      
+
       // Glow
-      final glowRect = Rect.fromLTWH((c * tileSize) - 2, (r * tileSize) - 2, tileSize + 4, tileSize + 4);
-      final glowPaint = Paint()..color = DungeonColors.tileExit.withValues(alpha: 0.5);
+      final glowRect = Rect.fromLTWH(
+        (c * tileSize) - 2,
+        (r * tileSize) - 2,
+        tileSize + 4,
+        tileSize + 4,
+      );
+      final glowPaint = Paint()
+        ..color = DungeonColors.tileExit.withValues(alpha: 0.5);
       canvas.drawRect(glowRect, glowPaint);
-      
+
       // Center
-      final rect = Rect.fromLTWH(c * tileSize, r * tileSize, tileSize, tileSize);
+      final rect = Rect.fromLTWH(
+        c * tileSize,
+        r * tileSize,
+        tileSize,
+        tileSize,
+      );
       final paint = Paint()..color = DungeonColors.tileExit;
       canvas.drawRect(rect, paint);
     }
@@ -64,7 +80,10 @@ class TileMapComponent extends Component {
     for (var item in levelSchema.items) {
       final r = item.position[0];
       final c = item.position[1];
-      final center = Offset(c * tileSize + tileSize / 2, r * tileSize + tileSize / 2);
+      final center = Offset(
+        c * tileSize + tileSize / 2,
+        r * tileSize + tileSize / 2,
+      );
       final paint = Paint()..color = DungeonColors.gold;
       canvas.drawCircle(center, tileSize / 4, paint);
     }

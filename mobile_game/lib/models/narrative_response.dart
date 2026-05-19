@@ -17,7 +17,8 @@ class NarrativeResponse {
     this.processingTimeMs,
   });
 
-  factory NarrativeResponse.fromJson(Map<String, dynamic> json) => NarrativeResponse(
+  factory NarrativeResponse.fromJson(Map<String, dynamic> json) =>
+      NarrativeResponse(
         eventType: json['event_type'],
         text: json['text'],
         displayDuration: json['display_duration'],

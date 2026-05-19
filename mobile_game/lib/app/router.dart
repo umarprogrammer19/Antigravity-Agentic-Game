@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -9,6 +10,25 @@ import '../features/menu/main_menu_screen.dart';
 import '../features/result/post_game_screen.dart';
 import '../features/traces/trace_viewer_screen.dart';
 import '../providers/auth_provider.dart';
+
+/// Fade transition page used by all routes for smooth screen changes.
+CustomTransitionPage<void> _fadeTransitionPage({
+  required LocalKey key,
+  required Widget child,
+}) {
+  return CustomTransitionPage<void>(
+    key: key,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 250),
+    reverseTransitionDuration: const Duration(milliseconds: 200),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      return FadeTransition(
+        opacity: CurveTween(curve: Curves.easeInOut).animate(animation),
+        child: child,
+      );
+    },
+  );
+}
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -32,31 +52,53 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(path: '/auth', builder: (context, state) => const AuthScreen()),
+      GoRoute(
+        path: '/auth',
+        pageBuilder: (context, state) =>
+            _fadeTransitionPage(key: state.pageKey, child: const AuthScreen()),
+      ),
       GoRoute(
         path: '/menu',
-        builder: (context, state) => const MainMenuScreen(),
+        pageBuilder: (context, state) => _fadeTransitionPage(
+          key: state.pageKey,
+          child: const MainMenuScreen(),
+        ),
       ),
       GoRoute(
         path: '/character-select',
-        builder: (context, state) => const CharacterSelectScreen(),
+        pageBuilder: (context, state) => _fadeTransitionPage(
+          key: state.pageKey,
+          child: const CharacterSelectScreen(),
+        ),
       ),
-      GoRoute(path: '/game', builder: (context, state) => const GameScreen()),
+      GoRoute(
+        path: '/game',
+        pageBuilder: (context, state) =>
+            _fadeTransitionPage(key: state.pageKey, child: const GameScreen()),
+      ),
       GoRoute(
         path: '/result',
-        builder: (context, state) =>
-            PostGameScreen(args: state.extra as PostGameArgs),
+        pageBuilder: (context, state) => _fadeTransitionPage(
+          key: state.pageKey,
+          child: PostGameScreen(args: state.extra as PostGameArgs),
+        ),
       ),
       GoRoute(
         path: '/traces/:sessionId',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final sessionId = state.pathParameters['sessionId']!;
-          return TraceViewerScreen(sessionId: sessionId);
+          return _fadeTransitionPage(
+            key: state.pageKey,
+            child: TraceViewerScreen(sessionId: sessionId),
+          );
         },
       ),
       GoRoute(
         path: '/leaderboard',
-        builder: (context, state) => const LeaderboardScreen(),
+        pageBuilder: (context, state) => _fadeTransitionPage(
+          key: state.pageKey,
+          child: const LeaderboardScreen(),
+        ),
       ),
     ],
   );
