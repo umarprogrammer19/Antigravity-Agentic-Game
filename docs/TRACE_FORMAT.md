@@ -57,7 +57,7 @@ Complex agents log multiple steps (4 for DM, 4 for LevelGenerator, etc.)
   },
   "decision": "Setting difficulty to 3/10. enemy_speed_multiplier=0.8 (slower enemies). item_drop_rate=1.5 (more healing). Targeting average player experience between challenge and success.",
   "duration_ms": 1240,
-  "model_used": "gemini-2.0-flash-thinking-exp",
+  "model_used": "gemini-2.5-flash-thinking-exp",
   "tokens_used": 342,
   "fallback_used": false,
   "agent_version": "1.0.0"
@@ -81,7 +81,7 @@ Complex agents log multiple steps (4 for DM, 4 for LevelGenerator, etc.)
 | `tool_output` | dict | Exact result from tool | {"loss_rate": 0.8} |
 | `decision` | string | What was decided/changed | "Difficulty → 3, speed → 0.8x" |
 | `duration_ms` | int | How long this step took | 1240 |
-| `model_used` | string | Gemini model variant | "gemini-2.0-flash" |
+| `model_used` | string | Gemini model variant | "gemini-2.5-flash" |
 | `tokens_used` | int | Token usage for this call | 342 |
 | `fallback_used` | bool | Was AI used or fallback? | false |
 
@@ -106,7 +106,7 @@ class BaseAgent(ABC):
     Provides tracing, Gemini client, and error handling.
     """
 
-    model_name: str = "gemini-2.0-flash"
+    model_name: str = "gemini-2.5-flash"
     agent_version: str = "1.0.0"
 
     def __init__(self, session_id: str, floor_number: int = 1, turn_number: int = 0):
@@ -487,7 +487,7 @@ class TraceEntryCard extends StatefulWidget {
 //   ✓ DECISION
 //   "Setting difficulty to 3/10. enemy_speed → 0.8x"
 //
-//   gemini-2.0-flash-thinking-exp · 342 tokens · 1240ms
+//   gemini-2.5-flash-thinking-exp · 342 tokens · 1240ms
 ```
 
 ---

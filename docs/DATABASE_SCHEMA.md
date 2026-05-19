@@ -175,7 +175,7 @@ sessions collection (global):
   },
   "decision": "Setting difficulty to 3/10. Reducing enemy speed to 0.8x.",
   "duration_ms": 1240,
-  "model_used": "gemini-2.0-flash-thinking-exp",
+  "model_used": "gemini-2.5-flash-thinking-exp",
   "fallback_used": false
 }
 ```
