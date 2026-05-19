@@ -8,8 +8,9 @@ from exceptions import AgentValidationError
 from fallbacks.fallback_levels import FALLBACK_LEVELS
 from config import redis_client
 
+
 class LevelGeneratorAgent(BaseAgent):
-    model_name = "gemini-2.0-flash"
+    model_name = "gemini-2.5-flash"
 
     def _get_system_prompt(self) -> str:
         return """You are the Dungeon Architect for DungeonMind, a roguelike dungeon crawler.
@@ -79,30 +80,42 @@ VALIDATION CHECKLIST (verify before outputting):
         return ""
 
     def _get_enemy_count(self, difficulty_level: int) -> int:
-        if difficulty_level <= 2: return 2
-        if difficulty_level <= 4: return 3
-        if difficulty_level <= 6: return 4
-        if difficulty_level <= 8: return 5
+        if difficulty_level <= 2:
+            return 2
+        if difficulty_level <= 4:
+            return 3
+        if difficulty_level <= 6:
+            return 4
+        if difficulty_level <= 8:
+            return 5
         return 7
 
     def _get_grid_size(self, difficulty_level: int) -> tuple[int, int]:
-        if difficulty_level <= 3: return 10, 10
-        if difficulty_level <= 6: return 12, 12
+        if difficulty_level <= 3:
+            return 10, 10
+        if difficulty_level <= 6:
+            return 12, 12
         return 15, 15
 
     def _build_user_prompt(self, context: dict) -> str:
-        floor_number = context.get('floor_number', 1)
-        theme = context.get('theme', 'enchanted_forest')
-        difficulty_level = context.get('difficulty_level', 1)
-        enemy_speed_multiplier = context.get('enemy_speed_multiplier', 1.0)
-        item_drop_rate = context.get('item_drop_rate', 1.0)
-        player_class = context.get('player_class', 'warrior')
-        player_current_hp = context.get('player_current_hp', 150)
+        floor_number = context.get("floor_number", 1)
+        theme = context.get("theme", "enchanted_forest")
+        difficulty_level = context.get("difficulty_level", 1)
+        enemy_speed_multiplier = context.get("enemy_speed_multiplier", 1.0)
+        item_drop_rate = context.get("item_drop_rate", 1.0)
+        player_class = context.get("player_class", "warrior")
+        player_current_hp = context.get("player_current_hp", 150)
 
-        grid_str = "10x10" if difficulty_level <= 3 else "12x12" if difficulty_level <= 6 else "15x15"
+        grid_str = (
+            "10x10"
+            if difficulty_level <= 3
+            else "12x12" if difficulty_level <= 6 else "15x15"
+        )
         enemy_count = self._get_enemy_count(difficulty_level)
         item_count = max(0, min(4, round(item_drop_rate * 1.5)))
-        boss_floor = "YES - include one boss enemy with 3x hp" if floor_number == 5 else "No"
+        boss_floor = (
+            "YES - include one boss enemy with 3x hp" if floor_number == 5 else "No"
+        )
 
         return f"""Generate a dungeon level with these specifications:
 
@@ -140,10 +153,10 @@ narrative_hook should reference the {theme} atmosphere specifically."""
         return fallback_copy
 
     async def run(self, context: dict) -> LevelSchema:
-        floor_number = context.get('floor_number', 1)
-        difficulty_level = context.get('difficulty_level', 1)
-        theme = context.get('theme', 'enchanted_forest')
-        
+        floor_number = context.get("floor_number", 1)
+        difficulty_level = context.get("difficulty_level", 1)
+        theme = context.get("theme", "enchanted_forest")
+
         # Step 8: Check Redis cache
         level_hash = self._get_level_hash(context)
         cache_key = f"level:{level_hash}"
@@ -158,22 +171,25 @@ narrative_hook should reference the {theme} atmosphere specifically."""
                             tool_called="check_cache",
                             tool_input={"cache_key": cache_key},
                             tool_output={"cache_hit": True},
-                            decision="Using cached level layout"
+                            decision="Using cached level layout",
                         )
                         # ensure the floor number and an unique level id is set for this session instance
                         level_obj.floor_number = floor_number
                         level_obj.level_id = str(uuid.uuid4())
                         return level_obj
         except Exception:
-            pass # ignore redis errors
+            pass  # ignore redis errors
 
         # Step 1: Analyze parameters (log trace)
         self.log_trace(
             reasoning=f"Floor {floor_number}, difficulty {difficulty_level}, theme {theme}",
             tool_called="analyze_parameters",
             tool_input=context,
-            tool_output={"grid_size": self._get_grid_size(difficulty_level), "enemy_count": self._get_enemy_count(difficulty_level)},
-            decision="Generating new level"
+            tool_output={
+                "grid_size": self._get_grid_size(difficulty_level),
+                "enemy_count": self._get_enemy_count(difficulty_level),
+            },
+            decision="Generating new level",
         )
 
         # Step 2: Build user prompt
@@ -183,7 +199,7 @@ narrative_hook should reference the {theme} atmosphere specifically."""
             top_p=0.95,
             max_output_tokens=2000,
             response_mime_type="application/json",
-            response_schema=LevelSchema.model_json_schema()
+            response_schema=LevelSchema.model_json_schema(),
         )
 
         level_obj = None
@@ -191,25 +207,37 @@ narrative_hook should reference the {theme} atmosphere specifically."""
 
         try:
             # Step 3 & 4: Call Gemini and parse
-            response_text, tokens, duration = await self._call_gemini(user_prompt, generation_config)
-            level_obj, validation_error = self._safe_parse_json(response_text, LevelSchema)
+            response_text, tokens, duration = await self._call_gemini(
+                user_prompt, generation_config
+            )
+            level_obj, validation_error = self._safe_parse_json(
+                response_text, LevelSchema
+            )
 
             # Step 5: If validation fails (or pathfinding fails) -> retry once
-            if validation_error or (level_obj and not validate_level_playable(level_obj)):
+            if validation_error or (
+                level_obj and not validate_level_playable(level_obj)
+            ):
                 if not validation_error:
                     validation_error = "validate_level_playable failed: No valid path from player_start to exit_position."
-                
+
                 rows, cols = self._get_grid_size(difficulty_level)
                 expected_enemy_count = self._get_enemy_count(difficulty_level)
                 retry_suffix = f"\n\nVALIDATION FAILED: {validation_error}\n\nCommon fixes:\n- Make sure all border tiles are 0 (first/last row, first/last col)\n- Make sure grid_rows={rows} and grid_cols={cols} match actual array size\n- Make sure enemy positions [row, col] are within grid bounds and on floor tiles (1)\n- Make sure player_start and exit_position are on floor tiles\n- Check that enemy_count = {expected_enemy_count} matches len(enemies)\n\nOutput the corrected JSON now. Only the JSON. No explanation."
-                
-                response_text, tokens2, duration2 = await self._call_gemini(user_prompt + retry_suffix, generation_config)
+
+                response_text, tokens2, duration2 = await self._call_gemini(
+                    user_prompt + retry_suffix, generation_config
+                )
                 tokens += tokens2
                 duration += duration2
-                level_obj, validation_error = self._safe_parse_json(response_text, LevelSchema)
+                level_obj, validation_error = self._safe_parse_json(
+                    response_text, LevelSchema
+                )
 
                 # Step 7: Validate path exists
-                if validation_error or (level_obj and not validate_level_playable(level_obj)):
+                if validation_error or (
+                    level_obj and not validate_level_playable(level_obj)
+                ):
                     raise AgentValidationError("Retry failed validation.")
 
             # Step 9: Log final trace
@@ -220,7 +248,7 @@ narrative_hook should reference the {theme} atmosphere specifically."""
                 tool_output={"grid_generated": True},
                 decision="Grid generated and validated",
                 duration_ms=duration,
-                tokens_used=tokens
+                tokens_used=tokens,
             )
 
         except Exception as e:
@@ -232,7 +260,7 @@ narrative_hook should reference the {theme} atmosphere specifically."""
                 tool_input={"theme": theme, "floor": floor_number},
                 tool_output={"level_id": level_obj.level_id},
                 decision="Used fallback level",
-                fallback_used=True
+                fallback_used=True,
             )
             return level_obj
 

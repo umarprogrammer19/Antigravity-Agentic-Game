@@ -19,11 +19,12 @@ FALLBACK_SESSION_PLAN = SessionPlan(
     boss_difficulty=2,
     narrative_intro="The ancient dungeon awaits. Danger lurks in every shadow.",
     dm_reasoning="Default fallback session created because AI service was unavailable. Using balanced settings.",
-    recommended_strategy="Explore carefully. Heal often."
+    recommended_strategy="Explore carefully. Heal often.",
 )
 
+
 class DungeonMasterAgent(BaseAgent):
-    model_name = "gemini-2.0-flash-thinking-exp"
+    model_name = "gemini-2.5-flash"
 
     def _get_system_prompt(self) -> str:
         return """You are the Dungeon Master for DungeonMind, an AI-powered roguelike mobile game.
@@ -57,12 +58,12 @@ Make your dm_reasoning detailed, specific, and traceable. Show your work."""
         total_sessions = history.get("total_sessions", 0)
         losses = history.get("losses", 0)
         avg_floors = history.get("avg_floors_cleared", 0.0)
-        
+
         loss_rate = losses / max(1, total_sessions)
-        
+
         def clamp(val, min_val, max_val):
             return max(min_val, min(val, max_val))
-            
+
         if loss_rate > 0.70:
             return {
                 "difficulty_level": clamp(int(avg_floors + 1), 1, 4),
@@ -71,7 +72,7 @@ Make your dm_reasoning detailed, specific, and traceable. Show your work."""
                 "enemy_count_multiplier": 0.8,
                 "boss_difficulty": 1,
                 "category": "struggling",
-                "loss_rate": loss_rate
+                "loss_rate": loss_rate,
             }
         elif loss_rate > 0.50:
             return {
@@ -81,7 +82,7 @@ Make your dm_reasoning detailed, specific, and traceable. Show your work."""
                 "enemy_count_multiplier": 1.0,
                 "boss_difficulty": 2,
                 "category": "below average",
-                "loss_rate": loss_rate
+                "loss_rate": loss_rate,
             }
         elif loss_rate < 0.30:
             return {
@@ -91,7 +92,7 @@ Make your dm_reasoning detailed, specific, and traceable. Show your work."""
                 "enemy_count_multiplier": 1.2,
                 "boss_difficulty": 4,
                 "category": "excelling",
-                "loss_rate": loss_rate
+                "loss_rate": loss_rate,
             }
         else:
             return {
@@ -101,83 +102,98 @@ Make your dm_reasoning detailed, specific, and traceable. Show your work."""
                 "enemy_count_multiplier": 1.0,
                 "boss_difficulty": 3,
                 "category": "average",
-                "loss_rate": loss_rate
+                "loss_rate": loss_rate,
             }
 
     def _select_theme(self, history: dict) -> str:
-        total_sessions = history.get('total_sessions', 0)
+        total_sessions = history.get("total_sessions", 0)
         if total_sessions == 0:
             return "enchanted_forest"
-            
-        last_5 = history.get('last_5_sessions', [])
-        
-        if last_5 and last_5[0].get('won', False):
-            last_theme = last_5[0].get('theme')
+
+        last_5 = history.get("last_5_sessions", [])
+
+        if last_5 and last_5[0].get("won", False):
+            last_theme = last_5[0].get("theme")
             themes = ["enchanted_forest", "volcanic_caves", "cursed_library"]
             if last_theme in themes:
                 themes.remove(last_theme)
             import random
+
             return random.choice(themes)
-            
+
         consecutive_losses = 0
         for s in last_5:
-            if not s.get('won', False):
+            if not s.get("won", False):
                 consecutive_losses += 1
             else:
                 break
         if consecutive_losses >= 3:
             return "enchanted_forest"
-            
-        wins_by_theme = history.get('wins_by_theme', {})
+
+        wins_by_theme = history.get("wins_by_theme", {})
         themes = ["enchanted_forest", "volcanic_caves", "cursed_library"]
         least_won_theme = "enchanted_forest"
-        min_wins = float('inf')
+        min_wins = float("inf")
         for t in themes:
             w = wins_by_theme.get(t, 0)
             if w < min_wins:
                 min_wins = w
                 least_won_theme = t
-                
+
         return least_won_theme
 
     async def run(self, context: dict) -> SessionPlan:
-        player_id = context.get('player_id', 'unknown')
-        player_class = context.get('player_class', 'warrior')
-        history = context.get('history', {
-            "total_sessions": 0, "wins": 0, "losses": 0, "avg_floors_cleared": 0.0,
-            "total_enemies_killed": 0, "last_5_sessions": []
-        })
+        player_id = context.get("player_id", "unknown")
+        player_class = context.get("player_class", "warrior")
+        history = context.get(
+            "history",
+            {
+                "total_sessions": 0,
+                "wins": 0,
+                "losses": 0,
+                "avg_floors_cleared": 0.0,
+                "total_enemies_killed": 0,
+                "last_5_sessions": [],
+            },
+        )
 
-        total_sessions = history.get('total_sessions', 0)
-        wins = history.get('wins', 0)
-        losses = history.get('losses', 0)
+        total_sessions = history.get("total_sessions", 0)
+        wins = history.get("wins", 0)
+        losses = history.get("losses", 0)
         loss_rate = losses / max(1, total_sessions)
-        
+
         diff_params = self._compute_difficulty(history)
-        
+
         # Step 1: Log the player history analysis
         self.log_trace(
             reasoning=f"Player has {wins} wins and {losses} losses. Loss rate: {loss_rate:.0%}",
             tool_called="compute_player_stats",
-            tool_input={"wins": wins, "losses": losses, "total_sessions": total_sessions},
+            tool_input={
+                "wins": wins,
+                "losses": losses,
+                "total_sessions": total_sessions,
+            },
             tool_output={"loss_rate": loss_rate, "category": diff_params["category"]},
-            decision="Analyzing player performance category"
+            decision="Analyzing player performance category",
         )
 
         # Step 2: Compute and log difficulty decision
         difficulty_level = diff_params["difficulty_level"]
         enemy_speed = diff_params["enemy_speed_multiplier"]
         item_drop = diff_params["item_drop_rate"]
-        
+
         mode = "easy" if loss_rate > 0.7 else "hard" if loss_rate < 0.3 else "normal"
         self.log_trace(
             reasoning=f"loss_rate = {losses}/{max(1, total_sessions)} = {loss_rate:.2f}. "
-                      f"{'Exceeds 70% threshold' if loss_rate > 0.7 else 'Below 30% threshold' if loss_rate < 0.3 else 'In average range'} "
-                      f"→ applying {mode} mode",
+            f"{'Exceeds 70% threshold' if loss_rate > 0.7 else 'Below 30% threshold' if loss_rate < 0.3 else 'In average range'} "
+            f"→ applying {mode} mode",
             tool_called="set_difficulty_params",
-            tool_input={"loss_rate": loss_rate, "avg_floors_cleared": history.get("avg_floors_cleared", 0)},
+            tool_input={
+                "loss_rate": loss_rate,
+                "avg_floors_cleared": history.get("avg_floors_cleared", 0),
+            },
             tool_output=diff_params,
-            decision=f"Setting difficulty to {difficulty_level}/10"
+            decision=f"Setting difficulty to {difficulty_level}/10",
         )
 
         # Step 3: Log theme selection with reason
@@ -185,9 +201,12 @@ Make your dm_reasoning detailed, specific, and traceable. Show your work."""
         self.log_trace(
             reasoning=f"Selected {theme} based on player history",
             tool_called="select_theme",
-            tool_input={"last_5_sessions": history.get("last_5_sessions", []), "wins_by_theme": history.get("wins_by_theme", {})},
+            tool_input={
+                "last_5_sessions": history.get("last_5_sessions", []),
+                "wins_by_theme": history.get("wins_by_theme", {}),
+            },
             tool_output={"theme": theme},
-            decision=f"Theme: {theme}"
+            decision=f"Theme: {theme}",
         )
 
         # Step 4: Call Gemini with EXACT system prompt and user prompt
@@ -221,13 +240,13 @@ THEME RULES:
 Output a complete SessionPlan JSON now. Be specific in dm_reasoning.
 Computed loss_rate = {history.get('losses', 0)} / {max(1, history.get('total_sessions', 0))} = {loss_rate:.2f}
 """
-        
+
         generation_config = genai.GenerationConfig(
             temperature=0.4,
             top_p=0.9,
             max_output_tokens=1000,
             response_mime_type="application/json",
-            response_schema=SessionPlan.model_json_schema()
+            response_schema=SessionPlan.model_json_schema(),
         )
 
         plan_obj = None
@@ -236,8 +255,12 @@ Computed loss_rate = {history.get('losses', 0)} / {max(1, history.get('total_ses
         tokens = 0
 
         try:
-            response_text, tokens, duration = await self._call_gemini(user_prompt, generation_config)
-            plan_obj, validation_error = self._safe_parse_json(response_text, SessionPlan)
+            response_text, tokens, duration = await self._call_gemini(
+                user_prompt, generation_config
+            )
+            plan_obj, validation_error = self._safe_parse_json(
+                response_text, SessionPlan
+            )
 
             # Step 6: On failure -> retry once
             if validation_error:
@@ -252,14 +275,18 @@ The JSON must exactly match this schema:
 
 Try again. Output the JSON object directly.
 """
-                response_text, tokens2, duration2 = await self._call_gemini(user_prompt + retry_suffix, generation_config)
+                response_text, tokens2, duration2 = await self._call_gemini(
+                    user_prompt + retry_suffix, generation_config
+                )
                 tokens += tokens2
                 duration += duration2
-                plan_obj, validation_error = self._safe_parse_json(response_text, SessionPlan)
-                
+                plan_obj, validation_error = self._safe_parse_json(
+                    response_text, SessionPlan
+                )
+
                 if validation_error:
                     raise AgentValidationError("Retry failed validation.")
-                    
+
         except Exception as e:
             # Step 7: On retry failure -> return FALLBACK_SESSION_PLAN
             plan_obj = FALLBACK_SESSION_PLAN.model_copy(deep=True)
@@ -270,12 +297,12 @@ Try again. Output the JSON object directly.
                 tool_input={"history": history},
                 tool_output={"session_id": plan_obj.session_id},
                 decision="Used fallback session plan",
-                fallback_used=True
+                fallback_used=True,
             )
             return plan_obj
 
         # Generate a new session_id if AI forgot or didn't provide a valid one
-        if not getattr(plan_obj, 'session_id', None) or len(plan_obj.session_id) < 10:
+        if not getattr(plan_obj, "session_id", None) or len(plan_obj.session_id) < 10:
             plan_obj.session_id = str(uuid.uuid4())
 
         # Step 8: Log final decision
@@ -286,7 +313,7 @@ Try again. Output the JSON object directly.
             tool_output=plan_obj.model_dump(),
             decision=f"Session plan ready. Player will face difficulty level {plan_obj.difficulty_level}.",
             duration_ms=duration,
-            tokens_used=tokens
+            tokens_used=tokens,
         )
-        
+
         return plan_obj

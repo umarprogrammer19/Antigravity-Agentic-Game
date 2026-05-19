@@ -17,7 +17,7 @@ class BaseAgent(ABC):
     Provides tracing, Gemini client, and error handling.
     """
 
-    model_name: str = "gemini-2.0-flash"
+    model_name: str = "gemini-2.5-flash"
     agent_version: str = "1.0.0"
 
     def __init__(self, session_id: str, floor_number: int = 1, turn_number: int = 0):
@@ -29,8 +29,7 @@ class BaseAgent(ABC):
 
         # Initialize Gemini client
         self._model = genai.GenerativeModel(
-            model_name=self.model_name,
-            system_instruction=self._get_system_prompt()
+            model_name=self.model_name, system_instruction=self._get_system_prompt()
         )
 
     @property
@@ -99,19 +98,31 @@ class BaseAgent(ABC):
         Returns (response_text, tokens_used, duration_ms).
         Raises GeminiCallError on failure.
         """
+        import asyncio
+
         start = time.time()
         try:
-            response = await self._model.generate_content_async(
-                user_prompt,
-                generation_config=generation_config
+            response = await asyncio.wait_for(
+                self._model.generate_content_async(
+                    user_prompt, generation_config=generation_config
+                ),
+                timeout=10.0,
             )
             duration_ms = int((time.time() - start) * 1000)
-            tokens = response.usage_metadata.total_token_count if hasattr(response, 'usage_metadata') and response.usage_metadata else 0
+            tokens = (
+                response.usage_metadata.total_token_count
+                if hasattr(response, "usage_metadata") and response.usage_metadata
+                else 0
+            )
             return response.text, tokens, duration_ms
+        except asyncio.TimeoutError:
+            raise GeminiCallError("Gemini API call timed out after 10.0 seconds")
         except Exception as e:
             raise GeminiCallError(f"Gemini API call failed: {str(e)}")
 
-    def _safe_parse_json(self, json_str: str, model_class: type) -> tuple[Any, str | None]:
+    def _safe_parse_json(
+        self, json_str: str, model_class: type
+    ) -> tuple[Any, str | None]:
         """
         Parse and validate JSON. Returns (parsed_object, error_message).
         error_message is None if successful.
