@@ -1,41 +1,83 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
-class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
+class AuthNotifier extends AsyncNotifier<User?> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
-  AuthNotifier() : super(const AsyncValue.loading()) {
-    _auth.authStateChanges().listen((user) {
+  @override
+  FutureOr<User?> build() {
+    // Listen to Firebase Auth state changes
+    final sub = _auth.authStateChanges().listen((user) {
       state = AsyncValue.data(user);
     });
+    
+    ref.onDispose(() {
+      sub.cancel();
+    });
+    
+    // Initial state
+    return _auth.currentUser;
   }
 
   Future<void> signInWithGoogle() async {
     state = const AsyncValue.loading();
     try {
-      // Stub for google sign in (needs google_sign_in package in real app)
-      // For now, simulate success or error if needed.
-      throw UnimplementedError("Google Sign-In is not fully implemented yet.");
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      
+      // Handle user cancellation gracefully
+      if (googleUser == null) {
+        state = AsyncValue.data(_auth.currentUser);
+        return;
+      }
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final UserCredential userCredential = await _auth.signInWithCredential(credential);
+      state = AsyncValue.data(userCredential.user);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
+      // Fallback delay to allow error UI to present before reverting to previous state if desired
+      await Future.delayed(const Duration(seconds: 2));
+      state = AsyncValue.data(_auth.currentUser);
     }
   }
 
   Future<void> signInAnonymously() async {
     state = const AsyncValue.loading();
     try {
-      await _auth.signInAnonymously();
+      final UserCredential userCredential = await _auth.signInAnonymously();
+      state = AsyncValue.data(userCredential.user);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
+      await Future.delayed(const Duration(seconds: 2));
+      state = AsyncValue.data(_auth.currentUser);
     }
   }
 
   Future<void> signOut() async {
-    await _auth.signOut();
+    state = const AsyncValue.loading();
+    try {
+      await Future.wait([
+        _auth.signOut(),
+        if (await _googleSignIn.isSignedIn()) _googleSignIn.signOut(),
+      ]);
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      await Future.delayed(const Duration(seconds: 2));
+      state = AsyncValue.data(_auth.currentUser);
+    }
   }
 }
 
-final authProvider = StateNotifierProvider<AuthNotifier, AsyncValue<User?>>((ref) {
+final authProvider = AsyncNotifierProvider<AuthNotifier, User?>(() {
   return AuthNotifier();
 });

@@ -20,12 +20,12 @@ class HUDOverlay extends StatelessWidget {
   final int turnCount;
 
   const HUDOverlay({
-    Key? key,
+    super.key,
     required this.currentHp,
     required this.maxHp,
     required this.floorNumber,
     required this.turnCount,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
