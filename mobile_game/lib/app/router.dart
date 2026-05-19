@@ -7,6 +7,7 @@ import '../features/character_select/character_select_screen.dart';
 import '../features/game/game_screen.dart';
 import '../features/leaderboard/leaderboard_screen.dart';
 import '../features/menu/main_menu_screen.dart';
+import '../features/result/post_game_screen.dart';
 import '../features/traces/trace_viewer_screen.dart';
 import '../providers/auth_provider.dart';
 
@@ -32,10 +33,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(
-        path: '/auth',
-        builder: (context, state) => const AuthScreen(),
-      ),
+      GoRoute(path: '/auth', builder: (context, state) => const AuthScreen()),
       GoRoute(
         path: '/menu',
         builder: (context, state) => const MainMenuScreen(),
@@ -44,13 +42,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/character-select',
         builder: (context, state) => const CharacterSelectScreen(),
       ),
-      GoRoute(
-        path: '/game',
-        builder: (context, state) => const GameScreen(),
-      ),
+      GoRoute(path: '/game', builder: (context, state) => const GameScreen()),
       GoRoute(
         path: '/result',
-        builder: (context, state) => const Scaffold(body: Center(child: Text('Result Screen'))),
+        builder: (context, state) =>
+            PostGameScreen(args: state.extra as PostGameArgs),
       ),
       GoRoute(
         path: '/traces/:sessionId',

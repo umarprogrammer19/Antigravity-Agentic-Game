@@ -21,23 +21,28 @@ class AgentService {
   final http.Client _client = http.Client();
   final Duration _timeout = const Duration(seconds: 10);
 
-  Future<http.Response> _post(String endpoint, Map<String, dynamic> body, {Map<String, String>? headers}) async {
+  Future<http.Response> _post(
+    String endpoint,
+    Map<String, dynamic> body, {
+    Map<String, String>? headers,
+  }) async {
     final url = Uri.parse('$baseUrl$endpoint');
     final stopwatch = Stopwatch()..start();
-    
+
     try {
-      final response = await _client.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          ...?headers,
-        },
-        body: jsonEncode(body),
-      ).timeout(_timeout);
-      
+      final response = await _client
+          .post(
+            url,
+            headers: {'Content-Type': 'application/json', ...?headers},
+            body: jsonEncode(body),
+          )
+          .timeout(_timeout);
+
       stopwatch.stop();
-      print('POST $url - ${response.statusCode} - ${stopwatch.elapsedMilliseconds}ms');
-      
+      print(
+        'POST $url - ${response.statusCode} - ${stopwatch.elapsedMilliseconds}ms',
+      );
+
       if (response.statusCode != 200) {
         throw AgentException('HTTP ${response.statusCode}: ${response.body}');
       }
@@ -49,22 +54,23 @@ class AgentService {
     }
   }
 
-  Future<http.Response> _get(String endpoint, {Map<String, String>? headers}) async {
+  Future<http.Response> _get(
+    String endpoint, {
+    Map<String, String>? headers,
+  }) async {
     final url = Uri.parse('$baseUrl$endpoint');
     final stopwatch = Stopwatch()..start();
-    
+
     try {
-      final response = await _client.get(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          ...?headers,
-        },
-      ).timeout(_timeout);
-      
+      final response = await _client
+          .get(url, headers: {'Content-Type': 'application/json', ...?headers})
+          .timeout(_timeout);
+
       stopwatch.stop();
-      print('GET $url - ${response.statusCode} - ${stopwatch.elapsedMilliseconds}ms');
-      
+      print(
+        'GET $url - ${response.statusCode} - ${stopwatch.elapsedMilliseconds}ms',
+      );
+
       if (response.statusCode != 200) {
         throw AgentException('HTTP ${response.statusCode}: ${response.body}');
       }
@@ -87,11 +93,9 @@ class AgentService {
         'player_class': playerClass,
         'force_new_session': false,
       },
-      headers: {
-        'X-Player-ID': playerId,
-      },
+      headers: {'X-Player-ID': playerId},
     );
-    
+
     return SessionPlan.fromJson(jsonDecode(response.body));
   }
 
@@ -117,11 +121,9 @@ class AgentService {
         'item_drop_rate': itemDropRate,
         'player_current_hp': playerCurrentHp,
       },
-      headers: {
-        'X-Session-ID': sessionId,
-      },
+      headers: {'X-Session-ID': sessionId},
     );
-    
+
     return LevelSchema.fromJson(jsonDecode(response.body));
   }
 
@@ -142,11 +144,9 @@ class AgentService {
         'board_state': boardState,
         'player_last_5_moves': playerLastMoves,
       },
-      headers: {
-        'X-Session-ID': sessionId,
-      },
+      headers: {'X-Session-ID': sessionId},
     );
-    
+
     return EnemyAction.fromJson(jsonDecode(response.body));
   }
 
@@ -164,11 +164,9 @@ class AgentService {
         'action': action,
         'board_state': boardState,
       },
-      headers: {
-        'X-Session-ID': sessionId,
-      },
+      headers: {'X-Session-ID': sessionId},
     );
-    
+
     return ActionResult.fromJson(jsonDecode(response.body));
   }
 
@@ -190,26 +188,59 @@ class AgentService {
         'theme': theme,
         'context': context,
       },
-      headers: {
-        'X-Session-ID': sessionId,
-      },
+      headers: {'X-Session-ID': sessionId},
     );
-    
+
     return NarrativeResponse.fromJson(jsonDecode(response.body));
   }
 
-  Future<List<TraceEntry>> getTraces({
-    required String sessionId,
-  }) async {
+  Future<List<TraceEntry>> getTraces({required String sessionId}) async {
     final response = await _get(
       '/traces/$sessionId',
-      headers: {
-        'X-Session-ID': sessionId,
-      },
+      headers: {'X-Session-ID': sessionId},
     );
-    
+
     final data = jsonDecode(response.body);
     final List<dynamic> traces = data['traces'] ?? [];
     return traces.map((e) => TraceEntry.fromJson(e)).toList();
+  }
+
+  Future<Map<String, dynamic>> saveSession({
+    required String playerId,
+    required String sessionId,
+    required bool won,
+    required int score,
+    required int floorsCleared,
+    required int enemiesKilled,
+    String? deathCause,
+    int? deathFloor,
+    required String playerClass,
+    required String theme,
+    required int difficultyLevel,
+    required int totalTurns,
+    required int sessionDurationSeconds,
+    required int aiDecisionsMade,
+  }) async {
+    final response = await _post(
+      '/players/$playerId/session',
+      {
+        'session_id': sessionId,
+        'won': won,
+        'score': score,
+        'floors_cleared': floorsCleared,
+        'enemies_killed': enemiesKilled,
+        'death_cause': deathCause,
+        'death_floor': deathFloor,
+        'player_class': playerClass,
+        'theme': theme,
+        'difficulty_level': difficultyLevel,
+        'total_turns': totalTurns,
+        'session_duration_seconds': sessionDurationSeconds,
+        'ai_decisions_made': aiDecisionsMade,
+      },
+      headers: {'X-Player-ID': playerId},
+    );
+
+    return jsonDecode(response.body);
   }
 }
