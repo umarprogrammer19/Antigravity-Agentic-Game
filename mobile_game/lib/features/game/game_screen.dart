@@ -6,6 +6,7 @@ import '../../app/theme.dart';
 import '../../providers/game_state_provider.dart';
 import 'flame/dungeon_game.dart';
 import 'flame/components/hud_component.dart';
+import 'widgets/ai_decision_panel.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
   const GameScreen({super.key});
@@ -87,7 +88,7 @@ class DPadControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      bottom: 20,
+      bottom: 120, // Moved up to leave space for AiDecisionPanel collapsed state
       right: 20,
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -115,37 +116,6 @@ class DPadControls extends StatelessWidget {
             icon: const Icon(Icons.keyboard_arrow_down, size: 48, color: Colors.white54),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// Placeholder for AiDecisionPanel
-class AiDecisionPanel extends StatelessWidget {
-  const AiDecisionPanel({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      bottom: 20,
-      left: 20,
-      child: Container(
-        width: 250,
-        padding: const EdgeInsets.all(DungeonSpacing.sm),
-        decoration: BoxDecoration(
-          color: DungeonColors.surfaceElevated.withValues(alpha: 0.8),
-          borderRadius: const BorderRadius.all(DungeonRadius.sm),
-          border: Border.all(color: DungeonColors.goldDim),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('AI Trace Log', style: DungeonText.caption.copyWith(color: DungeonColors.gold)),
-            const SizedBox(height: 4),
-            Text('Enemy reasoning will appear here...', style: DungeonText.trace),
-          ],
-        ),
       ),
     );
   }
