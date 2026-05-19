@@ -124,7 +124,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
       }
 
       if (direction != null) {
-        _handlePlayerMove(direction);
+        handlePlayerMove(direction);
         return KeyEventResult.handled;
       }
     }
@@ -132,7 +132,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     return KeyEventResult.ignored;
   }
 
-  void _handlePlayerMove(String direction) {
+  void handlePlayerMove(String direction) {
     final targetPos = gameController.getAdjacentPosition([
       player.gridRow,
       player.gridCol,

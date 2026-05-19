@@ -269,6 +269,50 @@ class GameStateNotifier extends StateNotifier<GameState> {
   void addTrace(TraceEntry trace) {
     state = state.copyWith(sessionTraces: [...state.sessionTraces, trace]);
   }
+
+  /// Update the turn phase (e.g. after enemy turn completes).
+  void setTurnPhase(TurnPhase phase) {
+    state = state.copyWith(turnPhase: phase);
+  }
+
+  /// Provider-level movement handler. Updates player position in state
+  /// and increments the turn counter. Call this after Flame has validated
+  /// and visually moved the player.
+  void playerMove(String direction) {
+    if (state.playerState == null || state.currentLevel == null) return;
+
+    final pos = List<int>.from(state.playerState!.position);
+    switch (direction) {
+      case 'up':
+        pos[0]--;
+        break;
+      case 'down':
+        pos[0]++;
+        break;
+      case 'left':
+        pos[1]--;
+        break;
+      case 'right':
+        pos[1]++;
+        break;
+      default:
+        return;
+    }
+
+    // Bounds check
+    final grid = state.currentLevel!.grid;
+    if (pos[0] < 0 || pos[0] >= grid.length) return;
+    if (pos[1] < 0 || pos[1] >= grid[pos[0]].length) return;
+    if (grid[pos[0]][pos[1]] == 0) return; // wall
+
+    state = state.copyWith(
+      playerState: state.playerState!.copyWith(
+        position: pos,
+        turnCount: state.playerState!.turnCount + 1,
+      ),
+      turnPhase: TurnPhase.processing,
+    );
+  }
 }
 
 final gameStateProvider = StateNotifierProvider<GameStateNotifier, GameState>((
