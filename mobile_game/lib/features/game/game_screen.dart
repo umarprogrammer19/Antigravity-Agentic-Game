@@ -98,7 +98,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Could not reach server. Is the backend running?\n${e.toString().split(':').first}'),
+            content: Text('Could not reach server: $e'),
             backgroundColor: Colors.red[900],
             duration: const Duration(seconds: 4),
           ),
