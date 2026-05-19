@@ -30,17 +30,16 @@ class _AiDecisionPanelState extends ConsumerState<AiDecisionPanel> {
   @override
   void initState() {
     super.initState();
+    // Animate thinking dots
     _timer = Timer.periodic(const Duration(milliseconds: 400), (timer) {
-      if (mounted) {
-        setState(() {
-          _dotCount = (_dotCount % 3) + 1;
-        });
-      }
+      if (mounted) setState(() => _dotCount = (_dotCount % 3) + 1);
     });
-
-    _pollTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      _pollTraces();
-    });
+    
+    // Poll traces every 3 seconds (faster than 5 for responsiveness)
+    _pollTimer = Timer.periodic(const Duration(seconds: 3), (_) => _pollTraces());
+    
+    // Poll immediately on start
+    Future.delayed(const Duration(seconds: 2), _pollTraces);
   }
 
   Future<void> _pollTraces() async {
@@ -179,8 +178,6 @@ class _AiDecisionPanelState extends ConsumerState<AiDecisionPanel> {
   }
 
   Widget _buildCollapsedContent(bool isThinking, TraceEntry? lastTrace) {
-    final dots = List.generate(_dotCount, (_) => '●').join();
-
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -198,65 +195,34 @@ class _AiDecisionPanelState extends ConsumerState<AiDecisionPanel> {
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Row(
             children: [
-              if (isThinking) ...[
-                const Text('🧠 ', style: TextStyle(fontSize: 16)),
-                Expanded(
-                  child: Text(
-                    'AI THINKING$dots',
-                    style: DungeonText.headingMedium.copyWith(
-                      color: DungeonColors.gold,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              ] else if (lastTrace != null) ...[
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: _getAgentColor(lastTrace.agent),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _getAgentColor(
-                      lastTrace.agent,
-                    ).withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    _getAgentAbbrev(lastTrace.agent),
-                    style: DungeonText.caption.copyWith(
-                      color: _getAgentColor(lastTrace.agent),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    lastTrace.decision,
-                    style: DungeonText.bodyMedium,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ] else ...[
-                Expanded(
-                  child: Text(
-                    'No AI traces yet.',
-                    style: DungeonText.bodyMedium.copyWith(
-                      color: DungeonColors.textSecondary,
-                    ),
-                  ),
-                ),
-              ],
+              Expanded(
+                child: isThinking
+                    ? Row(children: [
+                        const SizedBox(
+                          width: 16, height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation(DungeonColors.gold),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'AI THINKING${'..' * _dotCount}',
+                          style: DungeonText.bodyMedium.copyWith(color: DungeonColors.gold),
+                        ),
+                      ])
+                    : lastTrace != null
+                        ? Text(
+                            '${_getAgentAbbrev(lastTrace.agent)}: ${lastTrace.decision}',
+                            style: DungeonText.bodyMedium,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          )
+                        : Text(
+                            'Waiting for AI session to start...',
+                            style: DungeonText.caption.copyWith(color: DungeonColors.textDim),
+                          ),
+              ),
             ],
           ),
         ),

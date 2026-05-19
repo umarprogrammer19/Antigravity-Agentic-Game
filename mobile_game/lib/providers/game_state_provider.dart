@@ -174,42 +174,46 @@ class GameStateNotifier extends StateNotifier<GameState> {
       );
 
   void startNewFloor(LevelSchema level) {
-    final enemies = level.enemies
-        .map(
-          (e) => {
-            'id': e.id,
-            'type': e.type,
-            'position': e.position,
-            'hp': e.hp,
-            'max_hp': e.maxHp,
-            'attack': e.attack,
-            'defense': e.defense,
-            'behavior': e.behavior,
-            'is_alive': true,
-          },
-        )
-        .toList();
+    final currentPlayer = state.playerState;
+    
+    // Only reset position; keep HP, score, etc. from previous floor
+    final updatedPlayer = currentPlayer?.copyWith(
+      position: level.playerStart,
+      floorsCleared: (currentPlayer.floorsCleared),
+    ) ?? PlayerState(
+      playerId: '',
+      playerClass: 'warrior',
+      position: level.playerStart,
+      hp: 150,
+      maxHp: 150,
+      attack: 20,
+      defense: 8,
+      turnCount: 0,
+      floorsCleared: 0,
+      enemiesKilled: 0,
+      score: 0,
+      specialUsed: false,
+      inventory: [],
+      activeBuffs: {},
+    );
 
-    final items = level.items
-        .map(
-          (i) => {
-            'id': i.id,
-            'type': i.type,
-            'position': i.position,
-            'collected': false,
-          },
-        )
-        .toList();
+    final enemies = level.enemies.map((e) => {
+      'id': e.id, 'type': e.type, 'position': e.position,
+      'hp': e.hp, 'max_hp': e.maxHp, 'attack': e.attack,
+      'defense': e.defense, 'behavior': e.behavior, 'is_alive': true,
+    }).toList();
 
     state = state.copyWith(
       status: GameStatus.playing,
       currentLevel: level,
+      playerState: updatedPlayer,
       enemies: enemies,
-      items: items,
+      items: level.items.map((i) => {
+        'id': i.id, 'type': i.type, 'position': i.position, 'collected': false,
+      }).toList(),
       turnPhase: TurnPhase.playerTurn,
+      aiIsThinking: false,
     );
-
-    // In a real flow, if playerState is null, you'd initialize it here or earlier.
   }
 
   void updatePlayerPosition(List<int> position) {
@@ -266,6 +270,18 @@ class GameStateNotifier extends StateNotifier<GameState> {
     );
   }
 
+  void applyEnemyDamage(int damage) {
+    if (state.playerState == null) return;
+    
+    final newHp = (state.playerState!.hp - damage).clamp(0, state.playerState!.maxHp);
+    final isAlive = newHp > 0;
+    
+    state = state.copyWith(
+      playerState: state.playerState!.copyWith(hp: newHp),
+      status: isAlive ? GameStatus.playing : GameStatus.gameOverLose,
+    );
+  }
+
   void addTrace(TraceEntry trace) {
     state = state.copyWith(sessionTraces: [...state.sessionTraces, trace]);
   }
@@ -280,37 +296,28 @@ class GameStateNotifier extends StateNotifier<GameState> {
   /// and visually moved the player.
   void playerMove(String direction) {
     if (state.playerState == null || state.currentLevel == null) return;
+    if (state.turnPhase != TurnPhase.playerTurn) return; // Block during enemy turn
 
     final pos = List<int>.from(state.playerState!.position);
     switch (direction) {
-      case 'up':
-        pos[0]--;
-        break;
-      case 'down':
-        pos[0]++;
-        break;
-      case 'left':
-        pos[1]--;
-        break;
-      case 'right':
-        pos[1]++;
-        break;
-      default:
-        return;
+      case 'up':    pos[0]--; break;
+      case 'down':  pos[0]++; break;
+      case 'left':  pos[1]--; break;
+      case 'right': pos[1]++; break;
+      default: return;
     }
 
-    // Bounds check
     final grid = state.currentLevel!.grid;
     if (pos[0] < 0 || pos[0] >= grid.length) return;
     if (pos[1] < 0 || pos[1] >= grid[pos[0]].length) return;
-    if (grid[pos[0]][pos[1]] == 0) return; // wall
+    if (grid[pos[0]][pos[1]] == 0) return; // Wall
 
     state = state.copyWith(
       playerState: state.playerState!.copyWith(
         position: pos,
         turnCount: state.playerState!.turnCount + 1,
       ),
-      turnPhase: TurnPhase.processing,
+      turnPhase: TurnPhase.processing, // Signals enemy turn starting
     );
   }
 }

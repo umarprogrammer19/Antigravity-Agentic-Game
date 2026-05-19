@@ -16,6 +16,18 @@ class PlayerComponent extends PositionComponent
   String playerClass;
 
   bool _isFlashing = false;
+  bool _isAttacking = false;
+
+  void showAttack() {
+    _isAttacking = true;
+    add(
+      TimerComponent(
+        period: 0.15,
+        onTick: () => _isAttacking = false,
+        removeOnFinish: true,
+      ),
+    );
+  }
 
   PlayerComponent({
     required this.gridRow,
@@ -91,19 +103,46 @@ class PlayerComponent extends PositionComponent
   @override
   void render(Canvas canvas) {
     super.render(canvas);
-
     final rect = Rect.fromLTWH(0, 0, width, height);
 
-    // Inner square
-    final paint = Paint()
-      ..color = _isFlashing ? DungeonColors.crimson : DungeonColors.sapphire;
-    canvas.drawRect(rect, paint);
+    // Background
+    final bgColor = _isAttacking
+        ? DungeonColors
+              .gold // Flash gold when attacking
+        : _isFlashing
+        ? DungeonColors
+              .crimson // Flash red when taking damage
+        : DungeonColors.sapphire; // Normal blue
 
-    // Border
+    final bgPaint = Paint()..color = bgColor;
+    canvas.drawRect(rect, bgPaint);
+
+    // White border
     final borderPaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0;
     canvas.drawRect(rect, borderPaint);
+
+    // "P" label so player knows which box is them
+    final textPainter = TextPainter(
+      text: const TextSpan(
+        text: 'P',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      Offset(
+        (width - textPainter.width) / 2,
+        (height - textPainter.height) / 2,
+      ),
+    );
   }
 }

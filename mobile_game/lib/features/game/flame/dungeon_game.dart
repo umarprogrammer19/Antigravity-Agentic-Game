@@ -42,13 +42,10 @@ class DungeonGame extends FlameGame with KeyboardEvents {
 
   void applyEnemyAction(EnemyAction action) {
     final enemy = enemies.where((e) => e.id == action.enemyId).firstOrNull;
-    if (enemy == null) return;
-    if (action.actionType == 'move' && action.targetPosition != null) {
-      // Just visually update position for now
-      enemy.gridRow = action.targetPosition![0];
-      enemy.gridCol = action.targetPosition![1];
-    }
-    // attack animations could be triggered here
+    if (enemy == null || !enemy.isAlive) return;
+
+    // Use the component's own method which calls _updateScreenPosition
+    enemy.applyAction(action);
   }
 
   @override
@@ -138,26 +135,29 @@ class DungeonGame extends FlameGame with KeyboardEvents {
       player.gridCol,
     ], direction);
 
-    // Validate bounds and wall
-    if (!gameController.isTileWalkable(
-      targetPos[0],
-      targetPos[1],
-      levelSchema.grid,
-    )) {
-      return;
+    if (!gameController.isTileWalkable(targetPos[0], targetPos[1], levelSchema.grid)) {
+      return; // Hit a wall — do nothing
     }
 
-    // Check if enemy is there
     final enemyAtTarget = gameController.isEnemy(targetPos, enemies);
-    if (enemyAtTarget != null) {
-      // Attack!
+    if (enemyAtTarget != null && enemyAtTarget.isAlive) {
+      // PLAYER ATTACKS ENEMY
+      final damage = gameController.computeDamage(20, enemyAtTarget.defense);
+      enemyAtTarget.takeHit(damage);
+      // Trigger visual attack flash on player
+      player.showAttack();
+      // Fire event with damage info
       onGameEvent?.call(
         GameEvent.playerAttacked,
-        data: {'direction': direction, 'target': targetPos},
+        data: {
+          'direction': direction,
+          'target': targetPos,
+          'damage': damage,
+          'enemyId': enemyAtTarget.id,
+          'enemyKilled': !enemyAtTarget.isAlive,
+        },
       );
-      // (Actual damage application would happen via API -> ActionResult update)
     } else {
-      // Move!
       player.move(direction);
       onGameEvent?.call(GameEvent.playerMoved, data: {'direction': direction});
 
@@ -172,7 +172,6 @@ class DungeonGame extends FlameGame with KeyboardEvents {
         if (player.gridRow == item.position[0] &&
             player.gridCol == item.position[1]) {
           onGameEvent?.call(GameEvent.itemCollected, data: {'item': item.id});
-          // Typically we'd remove it, but rely on updated LevelSchema/GameState to re-render
         }
       }
     }

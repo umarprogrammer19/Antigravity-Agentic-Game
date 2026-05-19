@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme.dart';
 
-/// Fixed-position HUD overlay showing HP bar, floor, and turn count.
-/// Sits at the top of the game screen above the Flame canvas.
+/// Compact, fixed-position HUD overlay showing animated HP bar, floor, and turn count.
+/// Sits at the top of the game screen above the Flame canvas without overlapping the game grid.
 class HUDOverlay extends StatelessWidget {
   final int currentHp;
   final int maxHp;
@@ -23,98 +23,95 @@ class HUDOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hpRatio = maxHp > 0 ? (currentHp / maxHp).clamp(0.0, 1.0) : 0.0;
-    final hpColor = hpRatio > 0.5
-        ? DungeonColors.emerald
-        : hpRatio > 0.25
-        ? DungeonColors.amber
-        : DungeonColors.crimsonLight;
+    
+    final hpColor = hpRatio > 0.6
+        ? const Color(0xFF22C55E)   // Green
+        : hpRatio > 0.3
+            ? const Color(0xFFF59E0B) // Yellow/amber
+            : const Color(0xFFEF4444); // Red (danger)
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: DungeonColors.surface.withValues(alpha: 0.92),
-        borderRadius: const BorderRadius.all(DungeonRadius.sm),
+        color: Colors.black.withOpacity(0.75),
+        border: const Border(
+          bottom: BorderSide(color: DungeonColors.goldDim, width: 1),
+        ),
       ),
       child: Row(
         children: [
-          // HP Heart icon
-          const Icon(
-            Icons.favorite,
-            color: DungeonColors.crimsonLight,
-            size: 18,
-          ),
+          // Heart icon
+          Icon(Icons.favorite, color: hpColor, size: 16),
           const SizedBox(width: 6),
-
-          // HP Bar + Text
+          
+          // HP bar + number
           Expanded(
+            flex: 3,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(3),
-                  child: TweenAnimationBuilder<double>(
-                    tween: Tween<double>(begin: hpRatio, end: hpRatio),
-                    duration: const Duration(milliseconds: 400),
-                    curve: Curves.easeInOut,
-                    builder: (context, value, _) {
-                      return SizedBox(
-                        height: 8,
-                        child: LinearProgressIndicator(
-                          value: value,
-                          backgroundColor: DungeonColors.textDim,
-                          valueColor: AlwaysStoppedAnimation<Color>(hpColor),
-                        ),
-                      );
-                    },
+                // Animated HP bar
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: hpRatio, end: hpRatio),
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.easeInOut,
+                  builder: (_, value, __) => ClipRRect(
+                    borderRadius: BorderRadius.circular(3),
+                    child: LinearProgressIndicator(
+                      value: value,
+                      backgroundColor: Colors.white10,
+                      valueColor: AlwaysStoppedAnimation(hpColor),
+                      minHeight: 8,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  "$currentHp / $maxHp",
-                  style: DungeonText.caption.copyWith(
-                    color: hpColor,
+                  '$currentHp / $maxHp',
+                  style: TextStyle(
                     fontSize: 10,
+                    color: hpColor,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 12),
-
-          // Floor & Turn
+          
+          const SizedBox(width: 8),
+          
+          // Floor + Turn
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                "Floor $floorNumber",
-                style: DungeonText.caption.copyWith(
-                  color: DungeonColors.textPrimary,
+                'Floor $floorNumber/5',
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: DungeonColors.gold,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              Text("Turn $turnCount", style: DungeonText.caption),
+              Text(
+                'Turn $turnCount',
+                style: const TextStyle(
+                  fontSize: 10,
+                  color: DungeonColors.textSecondary,
+                ),
+              ),
             ],
           ),
-
+          
           // Pause button
-          if (onPauseTap != null) ...[
-            const SizedBox(width: 8),
-            SizedBox(
-              width: 32,
-              height: 32,
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                icon: const Icon(
-                  Icons.pause,
-                  color: DungeonColors.textSecondary,
-                  size: 20,
-                ),
-                tooltip: "Pause",
-                onPressed: onPauseTap,
-              ),
+          if (onPauseTap != null)
+            IconButton(
+              padding: const EdgeInsets.only(left: 8),
+              constraints: const BoxConstraints(),
+              icon: const Icon(Icons.pause, color: DungeonColors.textDim, size: 18),
+              onPressed: onPauseTap,
             ),
-          ],
         ],
       ),
     );
