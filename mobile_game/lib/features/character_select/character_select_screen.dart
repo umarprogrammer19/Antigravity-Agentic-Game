@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
+import '../../providers/player_provider.dart';
 
 enum PlayerClass { warrior, mage, ranger }
 
-class CharacterSelectScreen extends StatefulWidget {
+class CharacterSelectScreen extends ConsumerStatefulWidget {
   const CharacterSelectScreen({super.key});
 
   @override
-  State<CharacterSelectScreen> createState() => _CharacterSelectScreenState();
+  ConsumerState<CharacterSelectScreen> createState() => _CharacterSelectScreenState();
 }
 
-class _CharacterSelectScreenState extends State<CharacterSelectScreen> {
+class _CharacterSelectScreenState extends ConsumerState<CharacterSelectScreen> {
   PlayerClass? _selectedClass;
 
   @override
@@ -106,6 +108,8 @@ class _CharacterSelectScreenState extends State<CharacterSelectScreen> {
               onPressed: _selectedClass == null
                   ? null
                   : () {
+                      final className = _selectedClass!.name; // "warrior" | "mage" | "ranger"
+                      ref.read(playerProvider.notifier).setClass(className);
                       context.push('/game');
                     },
               child: Text(

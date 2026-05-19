@@ -93,8 +93,18 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       gameStateNotifier.setAiThinking(false);
       
     } catch (e) {
-      print("Error starting session: \$e");
+      print("Error starting session: $e");
       gameStateNotifier.setAiThinking(false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not reach server. Is the backend running?\n${e.toString().split(':').first}'),
+            backgroundColor: Colors.red[900],
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        context.pop();
+      }
     }
   }
 
@@ -104,7 +114,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       _dungeonGame = DungeonGame(
         levelSchema: gameState.currentLevel!,
         onGameEvent: (event, {data}) {
-          print('GameEvent: \$event, Data: \$data');
+          print('GameEvent: $event, Data: $data');
           _handleGameEvent(event, data);
         },
       );
@@ -177,7 +187,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         // We simulate setting turnPhase back to player_turn. The StateNotifier doesn't expose it directly yet.
         
       } catch (e) {
-        print("Error processing turn: \$e");
+        print("Error processing turn: $e");
         gameStateNotifier.setAiThinking(false);
       }
     } else if (event == GameEvent.floorCleared) {
@@ -231,7 +241,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       
       gameStateNotifier.setAiThinking(false);
     } catch (e) {
-      print("Error advancing floor: \$e");
+      print("Error advancing floor: $e");
       gameStateNotifier.setAiThinking(false);
     }
   }
@@ -253,7 +263,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         context.go('/result');
       }
     } catch (e) {
-      print("Error ending game: \$e");
+      print("Error ending game: $e");
       if (mounted) {
         context.go('/result');
       }
