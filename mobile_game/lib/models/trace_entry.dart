@@ -14,6 +14,7 @@ class TraceEntry {
   final int durationMs;
   final String modelUsed;
   final bool fallbackUsed;
+  final int tokensUsed;
 
   TraceEntry({
     this.traceId,
@@ -31,6 +32,7 @@ class TraceEntry {
     required this.durationMs,
     required this.modelUsed,
     required this.fallbackUsed,
+    required this.tokensUsed,
   });
 
   factory TraceEntry.fromJson(Map<String, dynamic> json) => TraceEntry(
@@ -49,5 +51,6 @@ class TraceEntry {
         durationMs: json['duration_ms'] ?? 0,
         modelUsed: json['model_used'],
         fallbackUsed: json['fallback_used'] ?? false,
+        tokensUsed: json['tokens_used'] ?? 0,
       );
 }

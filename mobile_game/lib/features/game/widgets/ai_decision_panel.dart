@@ -62,7 +62,7 @@ class _AiDecisionPanelState extends ConsumerState<AiDecisionPanel> {
         }
       }
     } catch (e) {
-      print("Error polling traces: \$e");
+      // Ignored
     }
   }
 

@@ -28,7 +28,7 @@ class MainMenuScreen extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: DungeonColors.surfaceElevated,
                 borderRadius: const BorderRadius.all(DungeonRadius.md),
-                border: Border.all(color: DungeonColors.goldDim.withOpacity(0.3)),
+                border: Border.all(color: DungeonColors.goldDim.withValues(alpha: 0.3)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
