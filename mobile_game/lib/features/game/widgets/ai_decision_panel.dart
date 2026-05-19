@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/theme.dart';
 import '../../../../models/trace_entry.dart';
 import '../../../../providers/game_state_provider.dart';
+import '../../../../providers/session_provider.dart';
+import '../../../../services/agent_service.dart';
 
 class AiDecisionPanel extends ConsumerStatefulWidget {
   const AiDecisionPanel({super.key});
@@ -22,6 +24,8 @@ class _AiDecisionPanelState extends ConsumerState<AiDecisionPanel> {
 
   int _dotCount = 1;
   Timer? _timer;
+  Timer? _pollTimer;
+  final AgentService _agentService = AgentService();
 
   @override
   void initState() {
@@ -33,11 +37,39 @@ class _AiDecisionPanelState extends ConsumerState<AiDecisionPanel> {
         });
       }
     });
+
+    _pollTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      _pollTraces();
+    });
+  }
+
+  Future<void> _pollTraces() async {
+    final session = ref.read(sessionProvider);
+    final sessionId = session.plan?.sessionId;
+    if (sessionId == null) return;
+
+    try {
+      final traces = await _agentService.getTraces(sessionId: sessionId);
+      final gameState = ref.read(gameStateProvider);
+      if (traces.length > gameState.sessionTraces.length) {
+        final gameStateNotifier = ref.read(gameStateProvider.notifier);
+        // Replace all traces to ensure we have the latest
+        // This relies on the provider having a way to set all traces or just updating them
+        // For simplicity, we just add missing ones or overwrite if a method existed
+        // Since we don't have setTraces, we'll iterate and add new ones
+        for (int i = gameState.sessionTraces.length; i < traces.length; i++) {
+          gameStateNotifier.addTrace(traces[i]);
+        }
+      }
+    } catch (e) {
+      print("Error polling traces: \$e");
+    }
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _pollTimer?.cancel();
     super.dispose();
   }
 
@@ -95,6 +127,13 @@ class _AiDecisionPanelState extends ConsumerState<AiDecisionPanel> {
     ref.listen(gameStateProvider.select((s) => s.sessionTraces.length), (prev, next) {
       if (next > (prev ?? 0)) {
         Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
+      }
+    });
+    
+    // Immediately update when game state AI status changes to false (meaning processing done)
+    ref.listen(gameStateProvider.select((s) => s.aiIsThinking), (prev, next) {
+      if (prev == true && next == false) {
+        _pollTraces();
       }
     });
 
@@ -282,8 +321,7 @@ class _AiDecisionPanelState extends ConsumerState<AiDecisionPanel> {
         Expanded(
           child: RefreshIndicator(
             onRefresh: () async {
-              // Usually poll AgentService here
-              await Future.delayed(const Duration(seconds: 1));
+              await _pollTraces();
             },
             child: ListView.builder(
               controller: _innerScrollController,

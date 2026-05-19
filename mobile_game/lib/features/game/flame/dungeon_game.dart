@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../../../models/level_schema.dart';
+import '../../../../models/enemy_action.dart';
 import 'components/enemy_component.dart';
 import 'components/hud_component.dart';
 import 'components/player_component.dart';
@@ -20,7 +21,7 @@ enum GameEvent {
 }
 
 class DungeonGame extends FlameGame with KeyboardEvents {
-  final LevelSchema levelSchema;
+  LevelSchema levelSchema;
   final void Function(GameEvent, {dynamic data})? onGameEvent;
 
   late TileMapComponent tileMap;
@@ -33,6 +34,25 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     required this.levelSchema,
     this.onGameEvent,
   });
+
+  void loadLevel(LevelSchema newLevel) {
+    levelSchema = newLevel;
+    // For simplicity in this scaffold, we just reload everything.
+    // In a real app we'd carefully clean up components and add new ones.
+    removeAll([tileMap, player, ...enemies, hud]);
+    onLoad();
+  }
+
+  void applyEnemyAction(EnemyAction action) {
+    final enemy = enemies.where((e) => e.id == action.enemyId).firstOrNull;
+    if (enemy == null) return;
+    if (action.actionType == 'move' && action.targetPosition != null) {
+      // Just visually update position for now
+      enemy.gridRow = action.targetPosition![0];
+      enemy.gridCol = action.targetPosition![1];
+    }
+    // attack animations could be triggered here
+  }
 
   @override
   Future<void> onLoad() async {
