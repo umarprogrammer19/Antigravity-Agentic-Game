@@ -9,6 +9,8 @@ from exceptions import AgentValidationError
 
 FALLBACK_SESSION_PLAN = SessionPlan(
     session_id=str(uuid.uuid4()),
+    player_id="fallback_player",
+    player_class="warrior",
     difficulty_level=3,
     theme="enchanted_forest",
     enemy_speed_multiplier=1.0,
@@ -16,7 +18,7 @@ FALLBACK_SESSION_PLAN = SessionPlan(
     enemy_count_multiplier=1.0,
     boss_difficulty=2,
     narrative_intro="The ancient dungeon awaits. Danger lurks in every shadow.",
-    dm_reasoning="Default session created (AI unavailable)",
+    dm_reasoning="Default fallback session created because AI service was unavailable. Using balanced settings.",
     recommended_strategy="Explore carefully. Heal often."
 )
 
