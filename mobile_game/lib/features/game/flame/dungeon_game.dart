@@ -318,8 +318,9 @@ class DungeonGame extends FlameGame with KeyboardEvents {
 
     if (target != null) {
       // Determine logical direction for animation/event
-      if (target.gridRow < playerPos[0]) attackDir = 'up';
-      else if (target.gridRow > playerPos[0]) attackDir = 'down';
+      if (target.gridRow < playerPos[0]) {
+        attackDir = 'up';
+      } else if (target.gridRow > playerPos[0]) attackDir = 'down';
       else if (target.gridCol < playerPos[1]) attackDir = 'left';
       else if (target.gridCol > playerPos[1]) attackDir = 'right';
 
