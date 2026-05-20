@@ -20,6 +20,7 @@ import 'widgets/ai_decision_panel.dart';
 import 'widgets/dpad_controls.dart';
 import 'widgets/hud_overlay.dart';
 import 'widgets/floating_damage.dart';
+import 'local_ai_engine.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
   const GameScreen({super.key});
@@ -303,36 +304,33 @@ class _GameScreenState extends ConsumerState<GameScreen>
           }
 
           if (_isAdjacentToPlayer(latestEnemy, playerState)) {
+            final enemyAttack = latestEnemy['attack'] as int? ?? 1;
+            final damage = (enemyAttack - playerState.defense).clamp(1, enemyAttack).toInt();
             return Future.value(
-              _enemyAttackAction(
-                latestEnemy,
-                playerState,
-                'Enemy is adjacent and attacks.',
+              EnemyAction(
+                enemyId: latestEnemy['id'] as String,
+                actionType: 'attack',
+                targetPosition: playerState.position,
+                damage: damage,
+                reasoning: 'Enemy is adjacent and attacks.',
+                updatedTactics: PlayerTacticsProfile(
+                  prefersMelee: true,
+                  prefersRanged: false,
+                  retreatsWhenLowHp: false,
+                  cornersPreference: false,
+                  turnsObserved: playerState.turnCount,
+                ),
               ),
             );
           }
 
-          return _agentService
-              .getNPCDecision(
-                sessionId: sessionId,
-                enemyState: latestEnemy,
-                playerState: playerState.toJson(),
-                boardState: boardState,
-                playerLastMoves: [direction],
-              )
-              .timeout(
-                const Duration(milliseconds: 1200),
-                onTimeout: () =>
-                    _fallbackEnemyAction(latestEnemy, playerState, boardState),
-              )
-              .catchError((e) {
-                debugPrint('Enemy action error: $e');
-                return _fallbackEnemyAction(
-                  latestEnemy,
-                  playerState,
-                  boardState,
-                );
-              });
+          final action = LocalAIEngine.getEnemyDecision(
+            enemyState: latestEnemy,
+            playerState: playerState,
+            boardState: boardState,
+          );
+          
+          return Future.value(action);
         }).toList();
 
         final enemyActions = await Future.wait(enemyFutures);
@@ -352,10 +350,21 @@ class _GameScreenState extends ConsumerState<GameScreen>
 
           final target = _dungeonGame?.enemyMoveTarget(action);
           if (target != null && _positionsEqual(target, pState.position)) {
-            action = _enemyAttackAction(
-              latestEnemy,
-              pState,
-              'Enemy reached melee range and attacks instead of overlapping.',
+            final enemyAttack = latestEnemy['attack'] as int? ?? 1;
+            final damage = (enemyAttack - pState.defense).clamp(1, enemyAttack).toInt();
+            action = EnemyAction(
+              enemyId: latestEnemy['id'] as String,
+              actionType: 'attack',
+              targetPosition: pState.position,
+              damage: damage,
+              reasoning: 'Enemy reached melee range and attacks instead of overlapping.',
+              updatedTactics: PlayerTacticsProfile(
+                prefersMelee: true,
+                prefersRanged: false,
+                retreatsWhenLowHp: false,
+                cornersPreference: false,
+                turnsObserved: pState.turnCount,
+              ),
             );
           }
 
@@ -365,10 +374,17 @@ class _GameScreenState extends ConsumerState<GameScreen>
               _dungeonGame?.applyEnemyAction(action);
               gameStateNotifier.applyEnemyMove(action.enemyId, moveTarget);
             } else {
-              action = _fallbackEnemyAction(
-                latestEnemy,
-                pState,
-                _buildBoardState(latestState),
+              action = EnemyAction(
+                enemyId: latestEnemy['id'] as String,
+                actionType: 'wait',
+                reasoning: 'Path was blocked by another moving entity.',
+                updatedTactics: PlayerTacticsProfile(
+                  prefersMelee: true,
+                  prefersRanged: false,
+                  retreatsWhenLowHp: false,
+                  cornersPreference: false,
+                  turnsObserved: pState.turnCount,
+                ),
               );
               if (action.actionType == 'move' &&
                   _dungeonGame?.isEnemyMoveAllowed(action) == true) {
@@ -442,104 +458,6 @@ class _GameScreenState extends ConsumerState<GameScreen>
         (position[0] - player.position[0]).abs() +
         (position[1] - player.position[1]).abs();
     return distance == 1;
-  }
-
-  EnemyAction _enemyAttackAction(
-    Map<String, dynamic> enemy,
-    PlayerState player,
-    String reasoning,
-  ) {
-    final enemyAttack = enemy['attack'] as int? ?? 1;
-    final damage = (enemyAttack - player.defense).clamp(1, enemyAttack).toInt();
-    return EnemyAction(
-      enemyId: enemy['id'] as String,
-      actionType: 'attack',
-      targetPosition: player.position,
-      damage: damage,
-      reasoning: reasoning,
-      updatedTactics: PlayerTacticsProfile(
-        prefersMelee: true,
-        prefersRanged: false,
-        retreatsWhenLowHp: false,
-        cornersPreference: false,
-        turnsObserved: player.turnCount,
-      ),
-    );
-  }
-
-  EnemyAction _fallbackEnemyAction(
-    Map<String, dynamic> enemy,
-    PlayerState player,
-    Map<String, dynamic> boardState,
-  ) {
-    final position = List<int>.from(enemy['position'] as List);
-    final distance =
-        (position[0] - player.position[0]).abs() +
-        (position[1] - player.position[1]).abs();
-    if (distance == 1) {
-      return _enemyAttackAction(
-        enemy,
-        player,
-        'Fallback melee attack while adjacent.',
-      );
-    }
-
-    final direction = _stepToward(position, player.position, boardState);
-    return EnemyAction(
-      enemyId: enemy['id'] as String,
-      actionType: direction == null ? 'wait' : 'move',
-      direction: direction,
-      reasoning: direction == null
-          ? 'Fallback waits because no safe path is open.'
-          : 'Fallback moves one safe step toward the player.',
-      updatedTactics: PlayerTacticsProfile(
-        prefersMelee: true,
-        prefersRanged: false,
-        retreatsWhenLowHp: false,
-        cornersPreference: false,
-        turnsObserved: player.turnCount,
-      ),
-    );
-  }
-
-  String? _stepToward(
-    List<int> from,
-    List<int> to,
-    Map<String, dynamic> boardState,
-  ) {
-    final primaryVertical = (to[0] - from[0]).abs() >= (to[1] - from[1]).abs();
-    final candidates = <MapEntry<String, List<int>>>[
-      if (primaryVertical)
-        MapEntry(to[0] < from[0] ? 'up' : 'down', [
-          to[0] < from[0] ? from[0] - 1 : from[0] + 1,
-          from[1],
-        ]),
-      if (!primaryVertical)
-        MapEntry(to[1] < from[1] ? 'left' : 'right', [
-          from[0],
-          to[1] < from[1] ? from[1] - 1 : from[1] + 1,
-        ]),
-      MapEntry('up', [from[0] - 1, from[1]]),
-      MapEntry('down', [from[0] + 1, from[1]]),
-      MapEntry('left', [from[0], from[1] - 1]),
-      MapEntry('right', [from[0], from[1] + 1]),
-    ];
-    final grid = boardState['grid'] as List;
-    final occupied = (boardState['all_enemy_positions'] as List)
-        .map((e) => List<int>.from(e as List))
-        .toList();
-
-    for (final entry in candidates) {
-      final r = entry.value[0];
-      final c = entry.value[1];
-      if (r < 0 || r >= grid.length) continue;
-      final row = grid[r] as List;
-      if (c < 0 || c >= row.length || row[c] == 0) continue;
-      if (occupied.any((p) => p[0] == r && p[1] == c)) continue;
-      if (r == to[0] && c == to[1]) continue;
-      return entry.key;
-    }
-    return null;
   }
 
   String _getEnemyName(String? type) {
@@ -635,6 +553,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
         enemySpeedMultiplier: session.plan!.enemySpeedMultiplier,
         itemDropRate: session.plan!.itemDropRate,
         playerCurrentHp: completedState.playerState!.hp,
+        playerMoveHistory: completedState.moveHistory,
       );
 
       gameStateNotifier.startNewFloor(level);
@@ -919,19 +838,24 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 children: [
                   Padding(
                     padding: const EdgeInsets.only(left: 16, bottom: 8),
-                    child: SizedBox(
-                      width: 118,
-                      child: Text(
-                        canAcceptInput
-                            ? 'Move into enemies to attack.'
-                            : 'Resolving turn...',
-                        style: DungeonText.caption.copyWith(
-                          color: canAcceptInput
-                              ? DungeonColors.textSecondary
-                              : DungeonColors.gold,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: DungeonColors.crimson,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
+                      ),
+                      onPressed: canAcceptInput
+                          ? () => _dungeonGame?.handleAttackAction()
+                          : null,
+                      child: const Text(
+                        'ATK',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),

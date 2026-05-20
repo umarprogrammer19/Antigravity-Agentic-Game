@@ -111,6 +111,8 @@ class GameState {
   final bool aiIsThinking;
   final String? aiLastDecision;
   final List<TraceEntry> sessionTraces;
+  final List<Map<String, dynamic>> moveHistory;
+  final String? playerAnalysis;
 
   GameState({
     this.status = GameStatus.loading,
@@ -123,6 +125,8 @@ class GameState {
     this.aiIsThinking = false,
     this.aiLastDecision,
     this.sessionTraces = const [],
+    this.moveHistory = const [],
+    this.playerAnalysis,
   });
 
   GameState copyWith({
@@ -136,6 +140,8 @@ class GameState {
     bool? aiIsThinking,
     String? aiLastDecision,
     List<TraceEntry>? sessionTraces,
+    List<Map<String, dynamic>>? moveHistory,
+    String? playerAnalysis,
   }) {
     return GameState(
       status: status ?? this.status,
@@ -148,6 +154,8 @@ class GameState {
       aiIsThinking: aiIsThinking ?? this.aiIsThinking,
       aiLastDecision: aiLastDecision ?? this.aiLastDecision,
       sessionTraces: sessionTraces ?? this.sessionTraces,
+      moveHistory: moveHistory ?? this.moveHistory,
+      playerAnalysis: playerAnalysis ?? this.playerAnalysis,
     );
   }
 }
@@ -213,6 +221,8 @@ class GameStateNotifier extends StateNotifier<GameState> {
       turnPhase: TurnPhase.playerTurn,
       aiIsThinking: false,
       aiLastDecision: null,
+      moveHistory: const [],
+      playerAnalysis: null,
     );
   }
 
@@ -275,6 +285,8 @@ class GameStateNotifier extends StateNotifier<GameState> {
           .toList(),
       turnPhase: TurnPhase.playerTurn,
       aiIsThinking: false,
+      moveHistory: const [], // Clear buffer for new floor
+      playerAnalysis: level.playerAnalysis,
     );
   }
 
@@ -366,6 +378,14 @@ class GameStateNotifier extends StateNotifier<GameState> {
       return updated;
     }).toList();
 
+    final newAction = {
+      'turn': state.playerState!.turnCount + 1,
+      'action_type': 'attack',
+      'target_id': enemyId,
+      'damage_dealt': damage,
+      'enemy_killed': enemyKilled,
+    };
+
     state = state.copyWith(
       playerState: state.playerState!.copyWith(
         turnCount: state.playerState!.turnCount + 1,
@@ -376,6 +396,7 @@ class GameStateNotifier extends StateNotifier<GameState> {
       ),
       enemies: updatedEnemies,
       turnPhase: TurnPhase.enemyTurn,
+      moveHistory: [...state.moveHistory, newAction],
     );
   }
 
@@ -468,12 +489,20 @@ class GameStateNotifier extends StateNotifier<GameState> {
     if (pos[1] < 0 || pos[1] >= grid[pos[0]].length) return;
     if (grid[pos[0]][pos[1]] == 0) return; // Wall
 
+    final newAction = {
+      'turn': state.playerState!.turnCount + 1,
+      'action_type': 'move',
+      'direction': direction,
+      'position': pos,
+    };
+
     state = state.copyWith(
       playerState: state.playerState!.copyWith(
         position: pos,
         turnCount: state.playerState!.turnCount + 1,
       ),
       turnPhase: TurnPhase.processing, // Signals enemy turn starting
+      moveHistory: [...state.moveHistory, newAction],
     );
   }
 }

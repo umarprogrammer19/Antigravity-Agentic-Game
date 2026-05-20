@@ -80,7 +80,8 @@ async def generate_level(request: GenerateLevelRequest):
             "player_class": request.player_class,
             "enemy_speed_multiplier": request.enemy_speed_multiplier,
             "item_drop_rate": request.item_drop_rate,
-            "player_current_hp": request.player_current_hp
+            "player_current_hp": request.player_current_hp,
+            "player_move_history": request.player_move_history
         })
         
         # Save traces

@@ -43,6 +43,7 @@ class LevelSchema(BaseModel):
     enemies: List[EnemySpec]
     items: List[ItemSpec]
     narrative_hook: str = Field(max_length=200)
+    player_analysis: str = Field(default="No analysis available.", description="AI analysis of the player's past moves and tactics.")
     difficulty_score: float = Field(ge=1.0, le=10.0)
     enemy_count: int
     estimated_turns_to_clear: int = Field(ge=5, le=100)

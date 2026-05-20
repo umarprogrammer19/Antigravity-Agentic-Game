@@ -31,7 +31,7 @@ class AgentService {
   }
 
   final http.Client _client = http.Client();
-  final Duration _timeout = const Duration(seconds: 25);
+  final Duration _timeout = const Duration(seconds: 30);
 
   static List<String> get _candidateBaseUrls {
     const configured = String.fromEnvironment('DUNGEONMIND_API_URL');
@@ -158,6 +158,7 @@ class AgentService {
     required double enemySpeedMultiplier,
     required double itemDropRate,
     required int playerCurrentHp,
+    List<Map<String, dynamic>> playerMoveHistory = const [],
   }) async {
     final response = await _post(
       '/agent/generate-level',
@@ -170,6 +171,7 @@ class AgentService {
         'enemy_speed_multiplier': enemySpeedMultiplier,
         'item_drop_rate': itemDropRate,
         'player_current_hp': playerCurrentHp,
+        'player_move_history': playerMoveHistory,
       },
       headers: {'X-Session-ID': sessionId},
     );

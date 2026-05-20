@@ -266,8 +266,87 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     }
   }
 
-  void handleWait() {
+  void handleAttackAction() {
     if (!inputEnabled) return;
-    onGameEvent?.call(GameEvent.playerWaited, data: {'direction': 'wait'});
+
+    final playerPos = [player.gridRow, player.gridCol];
+    EnemyComponent? target;
+    String attackDir = 'up';
+
+    if (player.playerClass == 'mage') {
+      // Mage: UP TO 2 tiles away, straight line
+      final candidates = enemies.where((e) {
+        if (!e.isAlive) return false;
+        final dr = (e.gridRow - playerPos[0]).abs();
+        final dc = (e.gridCol - playerPos[1]).abs();
+        return (dr == 0 && dc <= 2 && dc > 0) || (dc == 0 && dr <= 2 && dr > 0);
+      }).toList();
+      
+      if (candidates.isNotEmpty) {
+        candidates.sort((a, b) {
+          final distA = (a.gridRow - playerPos[0]).abs() + (a.gridCol - playerPos[1]).abs();
+          final distB = (b.gridRow - playerPos[0]).abs() + (b.gridCol - playerPos[1]).abs();
+          return distA.compareTo(distB); // closest first
+        });
+        target = candidates.first;
+      }
+    } else if (player.playerClass == 'ranger') {
+      // Ranger: 1 tile range, diagonal allowed
+      final candidates = enemies.where((e) {
+        if (!e.isAlive) return false;
+        final dr = (e.gridRow - playerPos[0]).abs();
+        final dc = (e.gridCol - playerPos[1]).abs();
+        return dr <= 1 && dc <= 1 && !(dr == 0 && dc == 0);
+      }).toList();
+
+      if (candidates.isNotEmpty) {
+        target = candidates.first;
+      }
+    } else {
+      // Warrior: adjacent orthogonal only
+      final candidates = enemies.where((e) {
+        if (!e.isAlive) return false;
+        final dr = (e.gridRow - playerPos[0]).abs();
+        final dc = (e.gridCol - playerPos[1]).abs();
+        return (dr == 1 && dc == 0) || (dr == 0 && dc == 1);
+      }).toList();
+
+      if (candidates.isNotEmpty) {
+        target = candidates.first;
+      }
+    }
+
+    if (target != null) {
+      // Determine logical direction for animation/event
+      if (target.gridRow < playerPos[0]) attackDir = 'up';
+      else if (target.gridRow > playerPos[0]) attackDir = 'down';
+      else if (target.gridCol < playerPos[1]) attackDir = 'left';
+      else if (target.gridCol > playerPos[1]) attackDir = 'right';
+
+      final effectiveAttack = player.playerClass == 'warrior'
+          ? (player.attack * 1.5).round()
+          : player.attack;
+      final damage = gameController.computeDamage(
+        effectiveAttack,
+        target.defense,
+      );
+      target.takeHit(damage);
+      player.showAttack();
+
+      onGameEvent?.call(
+        GameEvent.playerAttacked,
+        data: {
+          'direction': attackDir,
+          'target': [target.gridRow, target.gridCol],
+          'damage': damage,
+          'enemyId': target.id,
+          'enemyKilled': !target.isAlive,
+          'xpGained': target.maxHp ~/ 5,
+        },
+      );
+    } else {
+      // If no target in range, just wait
+      onGameEvent?.call(GameEvent.playerWaited, data: {'direction': 'wait'});
+    }
   }
 }

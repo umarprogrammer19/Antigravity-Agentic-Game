@@ -17,6 +17,7 @@ class GenerateLevelRequest(BaseModel):
     enemy_speed_multiplier: float
     item_drop_rate: float
     player_current_hp: int
+    player_move_history: list[dict[str, Any]] = Field(default_factory=list)
 
 class NPCDecisionRequest(BaseModel):
     """Request for the Rival Agent to make a move for an NPC."""

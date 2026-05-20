@@ -97,6 +97,99 @@ VALIDATION CHECKLIST (verify before outputting):
             return 12, 12
         return 15, 15
 
+from exceptions import AgentValidationError
+from fallbacks.fallback_levels import FALLBACK_LEVELS
+from config import redis_client
+
+
+class LevelGeneratorAgent(BaseAgent):
+    model_name = "gemini-2.5-flash"
+
+    def _get_system_prompt(self) -> str:
+        return """You are the Dungeon Architect for DungeonMind, a roguelike dungeon crawler.
+
+YOUR ROLE:
+Generate complete dungeon level layouts as structured JSON.
+Every level you create must be playable, balanced, and thematically consistent.
+
+YOUR CONSTRAINTS — FOLLOW THESE EXACTLY:
+
+GRID RULES:
+- Grid is a 2D array of integers. Row 0 is the top. Col 0 is the left.
+- Tile values: 0=wall, 1=floor, 2=unused, 3=lava(volcanic only), 4=trap, 5=item
+- ALL border tiles (row 0, last row, col 0, last col) MUST be walls (0)
+- There must be a walkable path from player_start to exit_position (no isolated sections)
+- player_start: always in top-left quadrant (rows 1-4, cols 1-4)
+- exit_position: always in bottom-right quadrant (last 4 rows, last 4 cols)
+
+GRID SIZES:
+- difficulty 1-3: exactly 10 rows × 10 cols
+- difficulty 4-6: exactly 12 rows × 12 cols  
+- difficulty 7-10: exactly 15 rows × 15 cols
+
+ENEMY PLACEMENT RULES:
+- No enemy within 3 tiles of player_start (Manhattan distance)
+- No two enemies on the same tile
+- No enemy on item tile or exit tile
+- Enemy positions must be on floor tiles (value=1 or 3)
+- Enemy IDs: "e1", "e2", "e3", etc.
+
+ITEM PLACEMENT RULES:
+- No item on player_start, exit, or enemy position
+- Items must be on floor tiles
+- Item IDs: "i1", "i2", "i3", etc.
+
+ENEMY COUNT BY DIFFICULTY:
+1-2: 2 enemies | 3-4: 3 enemies | 5-6: 4-5 enemies | 7-8: 5-6 enemies | 9-10: 7-8 enemies
+
+ITEM COUNT:
+Base count = round(item_drop_rate × 1.5), clamped to 0-4
+
+THEME-SPECIFIC RULES:
+- "cursed_library": use enemy types: shadow_mage, book_golem, librarian. Maze-like corridors.
+- "volcanic_caves": use enemy types: fire_elemental, rock_troll, lava_sprite. Use lava tiles (3) in open areas.
+- "enchanted_forest": use enemy types: goblin, forest_witch, druid. Open rooms with pillar-like walls.
+
+narrative_hook: Exactly 1 sentence. Present tense. Sets the atmosphere. No exclamation marks.
+difficulty_score: Your honest estimate of how hard this level is (1.0-10.0).
+estimated_turns_to_clear: Realistic estimate. Average player: 10-25 turns per floor.
+
+VALIDATION CHECKLIST (verify before outputting):
+✓ All border tiles are 0
+✓ player_start tile value is 1 (floor)
+✓ exit_position tile value is 1 (floor) [set it to 1 in the grid]
+✓ All enemy positions are valid floor tiles
+✓ All item positions are valid floor tiles
+✓ grid_rows and grid_cols match the actual grid dimensions
+✓ enemy_count matches len(enemies)"""
+
+    def _get_enemy_stats_for_theme(self, theme: str, difficulty_level: int) -> str:
+        if theme == "cursed_library":
+            return "SHADOW_MAGE: hp=30, attack=12, defense=2, behavior=ranged_2tile\nBOOK_GOLEM: hp=60, attack=8, defense=15, behavior=tank_melee\nLIBRARIAN: hp=20, attack=15, defense=0, behavior=flee_then_attack"
+        elif theme == "volcanic_caves":
+            return "FIRE_ELEMENTAL: hp=25, attack=18, defense=0, behavior=rush_melee\nROCK_TROLL: hp=80, attack=10, defense=20, behavior=slow_tank\nLAVA_SPRITE: hp=15, attack=22, defense=0, behavior=hit_and_run"
+        elif theme == "enchanted_forest":
+            return "GOBLIN: hp=20, attack=8, defense=3, behavior=swarm_melee\nFOREST_WITCH: hp=35, attack=14, defense=4, behavior=ranged_2tile\nDRUID: hp=50, attack=6, defense=8, behavior=heals_nearby_enemies"
+        return ""
+
+    def _get_enemy_count(self, difficulty_level: int) -> int:
+        if difficulty_level <= 2:
+            return 2
+        if difficulty_level <= 4:
+            return 3
+        if difficulty_level <= 6:
+            return 4
+        if difficulty_level <= 8:
+            return 5
+        return 7
+
+    def _get_grid_size(self, difficulty_level: int) -> tuple[int, int]:
+        if difficulty_level <= 3:
+            return 10, 10
+        if difficulty_level <= 6:
+            return 12, 12
+        return 15, 15
+
     def _build_user_prompt(self, context: dict) -> str:
         floor_number = context.get("floor_number", 1)
         theme = context.get("theme", "enchanted_forest")
@@ -105,6 +198,7 @@ VALIDATION CHECKLIST (verify before outputting):
         item_drop_rate = context.get("item_drop_rate", 1.0)
         player_class = context.get("player_class", "warrior")
         player_current_hp = context.get("player_current_hp", 150)
+        player_move_history = context.get("player_move_history", [])
 
         grid_str = (
             "10x10"
@@ -133,6 +227,9 @@ CLASS ADAPTATION:
 - mage: avoid too many tank enemies, add sight lines, and include a health potion when possible.
 - ranger: favor alternate routes and mobile enemies over dead-end mazes.
 
+PLAYER MOVE HISTORY (Last floor):
+{player_move_history if player_move_history else "No history available (first floor)."}
+
 ENEMY STATS FOR THIS THEME AND DIFFICULTY:
 {self._get_enemy_stats_for_theme(theme, difficulty_level)}
 
@@ -144,7 +241,8 @@ Calculate:
 
 Generate the complete LevelSchema JSON now.
 Remember: ALL border tiles must be 0. Verify path exists from player_start to exit.
-narrative_hook should reference the {theme} atmosphere specifically."""
+narrative_hook should reference the {theme} atmosphere specifically.
+player_analysis MUST contain your tactical analysis of the player_move_history provided above, and how this new level counters or complements their playstyle."""
 
     def _get_level_hash(self, context: dict) -> str:
         data = f"{context.get('difficulty_level', 1)}-{context.get('theme', 'enchanted_forest')}-{context.get('player_class', 'warrior')}-{context.get('floor_number', 1)}"

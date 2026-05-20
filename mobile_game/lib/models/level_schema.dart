@@ -65,6 +65,7 @@ class LevelSchema {
   final bool cached;
   final String? agentTraceId;
   final int? processingTimeMs;
+  final String playerAnalysis;
 
   LevelSchema({
     required this.levelId,
@@ -86,6 +87,7 @@ class LevelSchema {
     required this.cached,
     this.agentTraceId,
     this.processingTimeMs,
+    this.playerAnalysis = "No analysis available.",
   });
 
   factory LevelSchema.fromJson(Map<String, dynamic> json) => LevelSchema(
@@ -110,5 +112,6 @@ class LevelSchema {
     cached: json['cached'] ?? false,
     agentTraceId: json['agent_trace_id'],
     processingTimeMs: json['processing_time_ms'],
+    playerAnalysis: json['player_analysis'] ?? "No analysis available.",
   );
 }
