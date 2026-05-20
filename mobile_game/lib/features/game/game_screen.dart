@@ -150,10 +150,29 @@ class _GameScreenState extends ConsumerState<GameScreen>
     final gameState = ref.read(gameStateProvider);
     final session = ref.read(sessionProvider);
     final sessionId = session.plan?.sessionId;
+    final currentFloor = gameState.currentLevel?.floorNumber ?? 1;
 
     if (sessionId == null ||
         gameState.playerState == null ||
         gameState.currentLevel == null) {
+      return;
+    }
+    
+    if (currentFloor >= 5) {
+      if (mounted) {
+        context.go(
+          '/result',
+          extra: PostGameArgs(
+            won: true,
+            score: gameState.playerState?.score ?? 0,
+            floorsCleared: currentFloor,
+            enemiesKilled: gameState.playerState?.enemiesKilled ?? 0,
+            totalTurns: gameState.playerState?.turnCount ?? 0,
+            sessionId: session.plan?.sessionId ?? '',
+            theme: session.plan?.theme ?? 'enchanted_forest',
+          ),
+        );
+      }
       return;
     }
 
@@ -167,7 +186,6 @@ class _GameScreenState extends ConsumerState<GameScreen>
           "direction": direction,
           "target": data['target'],
         };
-
         if (event == GameEvent.playerAttacked && data['damage'] != null) {
           _showDamageNumber(data['damage'], isPlayerDamage: false);
         }
