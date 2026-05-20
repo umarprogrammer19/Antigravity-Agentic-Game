@@ -156,7 +156,7 @@ class GameStateNotifier extends StateNotifier<GameState> {
         GameState(
           playerState: PlayerState(
             playerId: "",
-            playerClass: "Warrior",
+            playerClass: "warrior",
             position: [0, 0],
             hp: 100,
             maxHp: 100,

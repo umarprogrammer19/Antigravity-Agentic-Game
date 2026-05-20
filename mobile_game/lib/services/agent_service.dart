@@ -19,7 +19,7 @@ class AgentException implements Exception {
 class AgentService {
   static const String baseUrl = 'http://localhost:8000';
   final http.Client _client = http.Client();
-  final Duration _timeout = const Duration(seconds: 10);
+  final Duration _timeout = const Duration(seconds: 30);
 
   Future<http.Response> _post(
     String endpoint,

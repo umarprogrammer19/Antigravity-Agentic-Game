@@ -137,7 +137,7 @@ class _CharacterSelectScreenState extends ConsumerState<CharacterSelectScreen> {
                     ? null
                     : () {
                         HapticFeedback.mediumImpact();
-                        final className = _selectedClass!.name;
+                        final className = _selectedClass!.name.toLowerCase();
                         ref.read(playerProvider.notifier).setClass(className);
                         context.push('/game');
                       },
