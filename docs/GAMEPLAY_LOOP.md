@@ -28,7 +28,8 @@ This makes AI latency invisible — enemy "thinking" feels natural.
 ### Grid Size
 - Minimum: 10×10
 - Standard: 15×15
-- Maximum: 20×20
+- High: 20×20
+- Maximum: 25×25
 - All grids are rectangular
 
 ### Coordinate System
@@ -105,17 +106,19 @@ RANGER
 ## COMBAT SYSTEM
 
 ### Melee Attack
-Triggered when player moves into enemy tile OR enemy moves into player tile.
+Triggered when player attack enemy by movement or by attack action (nearby enemy) or at a distance of 1 tile (for melee attack).
 ```
 damage = max(1, attacker_attack - defender_defense)
 
 Example:
   Player attack=20, Enemy defense=5
   damage = max(1, 20 - 5) = 15 HP removed from enemy
+  for enemy attack:
+  damage = max(1, enemy_attack - player_defense)
 ```
 
 ### Ranged Attack (Mage / Ranger special)
-Triggered by separate action (not movement).
+Triggered by attack action (Mage/Ranger).
 ```
 Mage bolt: Select direction → damages first enemy in that line up to 2 tiles
 Ranger shot: Select adjacent or diagonal enemy → direct damage
@@ -154,7 +157,7 @@ If enemy.hp <= 0:
 3. Action result applied:
    - If move: update player position
    - If attack: compute + apply damage
-   - If special: apply class ability
+   - If special: apply class ability (for warrior, apply class ability which is +50% damage to melee attack , for ranger, apply class ability which is +50% damage to ranged attack, for mage, apply class ability which is +50% damage to ranged attack.)
    - If wait: no change (skip turn)
 4. Check win/lose conditions
 5. If alive + not at exit: proceed to Enemy Turn
@@ -166,8 +169,8 @@ For each enemy (in order of enemy ID):
   1. Call RivalAgent.getNPCDecision(enemy_id, board_state, player_last_moves)
   2. Receive action: {type, target}
   3. Apply action:
-     - If "move": move enemy 1 tile toward target
-     - If "attack": compute damage to player
+     - If "move": move enemy 1 tile toward target (orthogonal only)
+     - If "attack": compute damage to player (melee attack, for ranger/mage attack if they are at a distance of 1 tile or diagonal)
      - If "wait": no action
   4. Update board state
 5. After ALL enemies have taken turn → next player turn
@@ -221,23 +224,23 @@ When player steps on EXIT tile:
 
 **Cursed Library Theme:**
 ```
-SHADOW_MAGE: hp=30, attack=12, defense=2, behavior=ranged_2tile
-BOOK_GOLEM:  hp=60, attack=8,  defense=15, behavior=tank_melee
-LIBRARIAN:   hp=20, attack=15, defense=0,  behavior=flee_then_attack
+SHADOW_MAGE: hp=50, attack=12, defense=2, behavior=ranged_2tile
+BOOK_GOLEM:  hp=80, attack=8,  defense=15, behavior=tank_melee
+LIBRARIAN:   hp=30, attack=15, defense=0,  behavior=flee_then_attack
 ```
 
 **Volcanic Caves Theme:**
 ```
-FIRE_ELEMENTAL: hp=25, attack=18, defense=0, behavior=rush_melee
-ROCK_TROLL:     hp=80, attack=10, defense=20, behavior=slow_tank
-LAVA_SPRITE:    hp=15, attack=22, defense=0, behavior=hit_and_run
+FIRE_ELEMENTAL: hp=50, attack=18, defense=0, behavior=rush_melee
+ROCK_TROLL:     hp=100, attack=10, defense=25, behavior=slow_tank
+LAVA_SPRITE:    hp=70, attack=22, defense=0, behavior=hit_and_run
 ```
 
 **Enchanted Forest Theme:**
 ```
-GOBLIN:        hp=20, attack=8,  defense=3, behavior=swarm_melee
-FOREST_WITCH:  hp=35, attack=14, defense=4, behavior=ranged_2tile
-DRUID:         hp=50, attack=6,  defense=8, behavior=heals_nearby_enemies
+GOBLIN:        hp=50, attack=8,  defense=3, behavior=swarm_melee
+FOREST_WITCH:  hp=70, attack=14, defense=4, behavior=ranged_2tile
+DRUID:         hp=100, attack=6,  defense=8, behavior=heals_nearby_enemies
 ```
 
 ### Enemy Behavior Types (Base Behavior — Before AI Override)
