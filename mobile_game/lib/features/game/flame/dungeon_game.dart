@@ -1,3 +1,4 @@
+import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flame/input.dart';
 import 'package:flutter/services.dart';
@@ -95,7 +96,8 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     await add(hud);
 
     // Camera follow player
-    camera.follow(player);
+    camera.viewfinder.anchor = Anchor.topLeft;
+    camera.viewfinder.position = Vector2.zero();
   }
 
   @override
@@ -135,7 +137,11 @@ class DungeonGame extends FlameGame with KeyboardEvents {
       player.gridCol,
     ], direction);
 
-    if (!gameController.isTileWalkable(targetPos[0], targetPos[1], levelSchema.grid)) {
+    if (!gameController.isTileWalkable(
+      targetPos[0],
+      targetPos[1],
+      levelSchema.grid,
+    )) {
       return; // Hit a wall — do nothing
     }
 
