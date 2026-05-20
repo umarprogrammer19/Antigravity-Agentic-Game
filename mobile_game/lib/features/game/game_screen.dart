@@ -12,6 +12,7 @@ import '../../services/agent_service.dart';
 import '../../widgets/error_card.dart';
 import '../result/post_game_screen.dart';
 import 'flame/dungeon_game.dart';
+import 'flame/components/tile_map_component.dart';
 import 'widgets/ai_decision_panel.dart';
 import 'widgets/dpad_controls.dart';
 import 'widgets/hud_overlay.dart';
@@ -130,9 +131,23 @@ class _GameScreenState extends ConsumerState<GameScreen>
   void _initGame() {
     final gameState = ref.read(gameStateProvider);
     if (gameState.currentLevel != null && _dungeonGame == null) {
+      final level = gameState.currentLevel!;
+      final screenSize = MediaQuery.of(context).size;
+      final gridRows = level.grid.length;
+      final gridCols = gridRows > 0 ? level.grid.first.length : 0;
+
+      if (gridRows > 0 && gridCols > 0) {
+        TileMapComponent.calibrateToScreen(
+          screenSize.width,
+          screenSize.height,
+          gridRows,
+          gridCols,
+        );
+      }
+
       setState(() {
         _dungeonGame = DungeonGame(
-          levelSchema: gameState.currentLevel!,
+          levelSchema: level,
           onGameEvent: (event, {data}) {
             _handleGameEvent(event, data);
           },
@@ -157,7 +172,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
         gameState.currentLevel == null) {
       return;
     }
-    
+
     if (currentFloor >= 5) {
       if (mounted) {
         context.go(
@@ -582,6 +597,49 @@ class _GameScreenState extends ConsumerState<GameScreen>
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 16, bottom: 8),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: DungeonColors.crimson.withValues(alpha: 0.8),
+                          border: Border.all(
+                            color: DungeonColors.crimsonLight,
+                            width: 2,
+                          ),
+                        ),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.sports_martial_arts,
+                            color: Colors.white,
+                            size: 28,
+                          ),
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Move into an enemy to attack!'),
+                                duration: Duration(seconds: 1),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'ATK',
+                        style: TextStyle(
+                          color: DungeonColors.crimsonLight,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 const Spacer(),
                 Padding(
                   padding: const EdgeInsets.only(right: 16, bottom: 8),

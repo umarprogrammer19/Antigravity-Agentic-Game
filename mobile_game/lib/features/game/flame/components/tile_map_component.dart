@@ -5,9 +5,20 @@ import '../../../../models/level_schema.dart';
 
 class TileMapComponent extends Component {
   final LevelSchema levelSchema;
-  static const double tileSize = 32.0;
+  static double tileSize = 32.0;
 
   TileMapComponent(this.levelSchema);
+
+  static void calibrateToScreen(
+    double screenWidth,
+    double screenHeight,
+    int gridRows,
+    int gridCols,
+  ) {
+    final double maxTileW = (screenWidth - 16) / gridCols;
+    final double maxTileH = (screenHeight - 16) / gridRows;
+    tileSize = (maxTileW < maxTileH ? maxTileW : maxTileH).clamp(24.0, 40.0);
+  }
 
   @override
   void render(Canvas canvas) {
