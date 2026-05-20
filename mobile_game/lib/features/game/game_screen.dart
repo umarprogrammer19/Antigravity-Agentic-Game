@@ -594,67 +594,72 @@ class _GameScreenState extends ConsumerState<GameScreen>
               ),
             ),
             // D-pad and AI panel at bottom — always below game
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 16, bottom: 8),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 64,
-                        height: 64,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: DungeonColors.crimson.withValues(alpha: 0.8),
-                          border: Border.all(
+            Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).padding.bottom + 8,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16, bottom: 8),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 64,
+                          height: 64,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: DungeonColors.crimson.withValues(alpha: 0.8),
+                            border: Border.all(
+                              color: DungeonColors.crimsonLight,
+                              width: 2,
+                            ),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.sports_martial_arts,
+                              color: Colors.white,
+                              size: 28,
+                            ),
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Move into an enemy to attack!'),
+                                  duration: Duration(seconds: 1),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'ATK',
+                          style: TextStyle(
                             color: DungeonColors.crimsonLight,
-                            width: 2,
+                            fontSize: 10,
                           ),
                         ),
-                        child: IconButton(
-                          icon: const Icon(
-                            Icons.sports_martial_arts,
-                            color: Colors.white,
-                            size: 28,
-                          ),
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Move into an enemy to attack!'),
-                                duration: Duration(seconds: 1),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'ATK',
-                        style: TextStyle(
-                          color: DungeonColors.crimsonLight,
-                          fontSize: 10,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const Spacer(),
-                Padding(
-                  padding: const EdgeInsets.only(right: 16, bottom: 8),
-                  child: DPadControls(
-                    onDirectionTap: (direction) {
-                      _dungeonGame?.handlePlayerMove(direction);
-                      ref
-                          .read(gameStateProvider.notifier)
-                          .playerMove(direction);
-                    },
+                  const Spacer(),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 16, bottom: 8),
+                    child: DPadControls(
+                      onDirectionTap: (direction) {
+                        _dungeonGame?.handlePlayerMove(direction);
+                        ref
+                            .read(gameStateProvider.notifier)
+                            .playerMove(direction);
+                      },
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-            SizedBox(height: 180, child: const AiDecisionPanel()),
+            SizedBox(height: 160, child: const AiDecisionPanel()),
           ],
         ),
       ),
