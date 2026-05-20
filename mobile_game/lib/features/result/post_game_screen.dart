@@ -98,7 +98,7 @@ class _PostGameScreenState extends ConsumerState<PostGameScreen>
       final results = await Future.wait([
         agentService.getNarrative(
           sessionId: widget.args.sessionId,
-          eventType: widget.args.won ? "session_won" : "player_death",
+          eventType: widget.args.won ? "floor_cleared" : "player_death",
           playerClass: player?.playerClass ?? "warrior",
           floorNumber: widget.args.floorsCleared,
           theme: widget.args.theme,

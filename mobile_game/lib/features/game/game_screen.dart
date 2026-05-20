@@ -10,6 +10,7 @@ import '../../providers/player_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/agent_service.dart';
 import '../../widgets/error_card.dart';
+import '../../models/enemy_action.dart';
 import '../result/post_game_screen.dart';
 import 'flame/dungeon_game.dart';
 import 'flame/components/tile_map_component.dart';
@@ -57,11 +58,28 @@ class _GameScreenState extends ConsumerState<GameScreen>
 
     final playerId = ref.read(authProvider).value?.uid ?? "guest_123";
     final playerClass = player?.playerClass ?? "warrior";
+    gameStateNotifier.initializeRun(
+      playerId: playerId,
+      playerClass: playerClass,
+    );
 
     try {
       gameStateNotifier.setAiThinking(
         true,
         decision: "DungeonMaster is preparing the session…",
+      );
+
+      gameStateNotifier.setAiThinking(
+        true,
+        decision: "Checking backend connection...",
+      );
+
+      final backendUrl = await _agentService.checkHealth();
+      debugPrint('Starting dungeon through $backendUrl');
+
+      gameStateNotifier.setAiThinking(
+        true,
+        decision: "DungeonMaster is preparing the session...",
       );
 
       final plan = await _agentService.startSession(
@@ -96,7 +114,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
         playerClass: playerClass,
         enemySpeedMultiplier: plan.enemySpeedMultiplier,
         itemDropRate: plan.itemDropRate,
-        playerCurrentHp: 150,
+        playerCurrentHp: ref.read(gameStateProvider).playerState!.hp,
       );
 
       gameStateNotifier.startNewFloor(level);
@@ -104,16 +122,26 @@ class _GameScreenState extends ConsumerState<GameScreen>
       if (_dungeonGame == null) {
         _initGame();
       } else {
-        _dungeonGame!.loadLevel(level);
+        final playerState = ref.read(gameStateProvider).playerState!;
+        _dungeonGame!.syncPlayerStats(
+          hp: playerState.hp,
+          maxHp: playerState.maxHp,
+          attack: playerState.attack,
+          defense: playerState.defense,
+        );
+        await _dungeonGame!.loadLevel(level);
       }
 
       gameStateNotifier.setAiThinking(false);
     } catch (e) {
       gameStateNotifier.setAiThinking(false);
       if (mounted) {
+        final message = e is AgentException
+            ? e.message
+            : 'Unexpected error: ${e.toString()}';
         ErrorCard.showSnackBarError(
           context,
-          message: "Failed to start your dungeon. Check your connection.",
+          message: "Failed to start dungeon. $message",
           onRetry: () {
             _sessionStarted = false;
             _startSession();
@@ -132,6 +160,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
     final gameState = ref.read(gameStateProvider);
     if (gameState.currentLevel != null && _dungeonGame == null) {
       final level = gameState.currentLevel!;
+      final playerState = gameState.playerState!;
       final screenSize = MediaQuery.of(context).size;
       final gridRows = level.grid.length;
       final gridCols = gridRows > 0 ? level.grid.first.length : 0;
@@ -148,6 +177,11 @@ class _GameScreenState extends ConsumerState<GameScreen>
       setState(() {
         _dungeonGame = DungeonGame(
           levelSchema: level,
+          playerClass: playerState.playerClass,
+          playerHp: playerState.hp,
+          playerMaxHp: playerState.maxHp,
+          playerAttack: playerState.attack,
+          playerDefense: playerState.defense,
           onGameEvent: (event, {data}) {
             _handleGameEvent(event, data);
           },
@@ -165,7 +199,6 @@ class _GameScreenState extends ConsumerState<GameScreen>
     final gameState = ref.read(gameStateProvider);
     final session = ref.read(sessionProvider);
     final sessionId = session.plan?.sessionId;
-    final currentFloor = gameState.currentLevel?.floorNumber ?? 1;
 
     if (sessionId == null ||
         gameState.playerState == null ||
@@ -173,92 +206,141 @@ class _GameScreenState extends ConsumerState<GameScreen>
       return;
     }
 
-    if (currentFloor >= 5) {
-      if (mounted) {
-        context.go(
-          '/result',
-          extra: PostGameArgs(
-            won: true,
-            score: gameState.playerState?.score ?? 0,
-            floorsCleared: currentFloor,
-            enemiesKilled: gameState.playerState?.enemiesKilled ?? 0,
-            totalTurns: gameState.playerState?.turnCount ?? 0,
-            sessionId: session.plan?.sessionId ?? '',
-            theme: session.plan?.theme ?? 'enchanted_forest',
-          ),
+    if (event == GameEvent.floorCleared) {
+      if (data is Map && data['position'] is List) {
+        gameStateNotifier.updatePlayerPosition(
+          List<int>.from(data['position']),
         );
       }
+      await _handleFloorCleared(session, ref.read(gameStateProvider));
       return;
     }
 
-    if (event == GameEvent.playerMoved || event == GameEvent.playerAttacked) {
+    if (event == GameEvent.playerMoved ||
+        event == GameEvent.playerAttacked ||
+        event == GameEvent.playerWaited) {
       try {
         gameStateNotifier.setAiThinking(true, decision: "Validating action…");
 
         final direction = data['direction'] as String;
-        final action = <String, dynamic>{
-          "type": event == GameEvent.playerAttacked ? "attack" : "move",
-          "direction": direction,
-          "target": data['target'],
-        };
-        if (event == GameEvent.playerAttacked && data['damage'] != null) {
-          _showDamageNumber(data['damage'], isPlayerDamage: false);
+        if (event == GameEvent.playerAttacked) {
+          final damage = data['damage'] as int? ?? 0;
+          final enemyKilled = data['enemyKilled'] == true;
+          gameStateNotifier.applyLocalAttack(
+            enemyId: data['enemyId'] as String,
+            damage: damage,
+            enemyKilled: enemyKilled,
+            xpGained: enemyKilled ? (data['xpGained'] as int? ?? 0) : 0,
+          );
+          if (damage > 0) {
+            _showDamageNumber(damage, isPlayerDamage: false);
+          }
+        } else {
+          final isWait = event == GameEvent.playerWaited;
+          gameStateNotifier.setAiThinking(
+            true,
+            decision: isWait ? "Waiting..." : "Validating move...",
+          );
+          final latestState = ref.read(gameStateProvider);
+          final result = await _agentService.validateAction(
+            sessionId: sessionId,
+            playerState: latestState.playerState!.toJson(),
+            action: {"type": isWait ? "wait" : "move", "direction": direction},
+            boardState: _buildBoardState(latestState),
+          );
+
+          if (!result.actionValid) {
+            gameStateNotifier.setAiThinking(
+              false,
+              decision: result.resultNarrative,
+            );
+            return;
+          }
+
+          gameStateNotifier.applyActionResult(result);
         }
-
-        final boardState = <String, dynamic>{
-          "grid": gameState.currentLevel!.grid,
-          "all_enemy_positions": gameState.enemies
-              .where((e) => e['is_alive'] == true)
-              .map((e) => e['position'])
-              .toList(),
-          "items": gameState.items,
-        };
-
-        final result = await _agentService.validateAction(
-          sessionId: sessionId,
-          playerState: gameState.playerState!.toJson(),
-          action: action,
-          boardState: boardState,
-        );
-
-        gameStateNotifier.applyActionResult(result);
-
-        if (result.floorCleared) {
-          await _handleFloorCleared(session, ref.read(gameStateProvider));
-          return;
-        }
-        if (result.sessionOver) {
-          await _handleGameOver(session, ref.read(gameStateProvider));
-          return;
-        }
-
         // Enemy turn
         gameStateNotifier.setAiThinking(
           true,
           decision: "RivalAgent calculating enemy moves…",
         );
 
-        final currentGameState = ref.read(gameStateProvider);
-        final aliveEnemies = currentGameState.enemies
+        final aliveEnemies = ref
+            .read(gameStateProvider)
+            .enemies
             .where((e) => e['is_alive'] == true)
             .toList();
 
-        for (var enemy in aliveEnemies) {
+        for (final enemy in aliveEnemies) {
           try {
-            final enemyAction = await _agentService.getNPCDecision(
-              sessionId: sessionId,
-              enemyState: enemy,
-              playerState: currentGameState.playerState!.toJson(),
-              boardState: boardState,
-              playerLastMoves: [direction],
+            final latestState = ref.read(gameStateProvider);
+            final playerState = latestState.playerState!;
+            final latestEnemy = latestState.enemies.firstWhere(
+              (e) => e['id'] == enemy['id'],
+              orElse: () => enemy,
             );
+            if (latestEnemy['is_alive'] != true) continue;
 
-            // Apply visual movement in Flame
-            _dungeonGame?.applyEnemyAction(enemyAction);
+            final boardState = _buildBoardState(latestState);
+            var enemyAction = await _agentService
+                .getNPCDecision(
+                  sessionId: sessionId,
+                  enemyState: latestEnemy,
+                  playerState: playerState.toJson(),
+                  boardState: boardState,
+                  playerLastMoves: [direction],
+                )
+                .timeout(
+                  const Duration(milliseconds: 1500),
+                  onTimeout: () => _fallbackEnemyAction(
+                    latestEnemy,
+                    playerState,
+                    boardState,
+                  ),
+                );
+
+            final target = _dungeonGame?.enemyMoveTarget(enemyAction);
+            if (target != null &&
+                _positionsEqual(target, playerState.position)) {
+              enemyAction = _enemyAttackAction(
+                latestEnemy,
+                playerState,
+                'Enemy reached melee range and attacks instead of overlapping.',
+              );
+            }
+
+            if (enemyAction.actionType == 'move') {
+              if (_dungeonGame?.isEnemyMoveAllowed(enemyAction) == true) {
+                final moveTarget = _dungeonGame!.enemyMoveTarget(enemyAction)!;
+                _dungeonGame?.applyEnemyAction(enemyAction);
+                gameStateNotifier.applyEnemyMove(
+                  enemyAction.enemyId,
+                  moveTarget,
+                );
+              } else {
+                enemyAction = _fallbackEnemyAction(
+                  latestEnemy,
+                  playerState,
+                  boardState,
+                );
+                if (enemyAction.actionType == 'move' &&
+                    _dungeonGame?.isEnemyMoveAllowed(enemyAction) == true) {
+                  final moveTarget = _dungeonGame!.enemyMoveTarget(
+                    enemyAction,
+                  )!;
+                  _dungeonGame?.applyEnemyAction(enemyAction);
+                  gameStateNotifier.applyEnemyMove(
+                    enemyAction.enemyId,
+                    moveTarget,
+                  );
+                }
+              }
+            }
 
             // If enemy attacks, reduce player HP
             if (enemyAction.actionType == 'attack' &&
                 enemyAction.damage != null) {
+              _dungeonGame?.applyEnemyAction(enemyAction);
               gameStateNotifier.applyEnemyDamage(enemyAction.damage!);
 
               // Flash player component to show damage received
@@ -306,6 +388,116 @@ class _GameScreenState extends ConsumerState<GameScreen>
     }
   }
 
+  Map<String, dynamic> _buildBoardState(GameState state) => {
+    "grid": state.currentLevel!.grid,
+    "all_enemy_positions": state.enemies
+        .where((e) => e['is_alive'] == true)
+        .map((e) => e['position'])
+        .toList(),
+    "items": state.items,
+  };
+
+  bool _positionsEqual(List<int> a, List<int> b) =>
+      a.length == b.length && a[0] == b[0] && a[1] == b[1];
+
+  EnemyAction _enemyAttackAction(
+    Map<String, dynamic> enemy,
+    PlayerState player,
+    String reasoning,
+  ) {
+    final enemyAttack = enemy['attack'] as int? ?? 1;
+    final damage = (enemyAttack - player.defense).clamp(1, enemyAttack).toInt();
+    return EnemyAction(
+      enemyId: enemy['id'] as String,
+      actionType: 'attack',
+      targetPosition: player.position,
+      damage: damage,
+      reasoning: reasoning,
+      updatedTactics: PlayerTacticsProfile(
+        prefersMelee: true,
+        prefersRanged: false,
+        retreatsWhenLowHp: false,
+        cornersPreference: false,
+        turnsObserved: player.turnCount,
+      ),
+    );
+  }
+
+  EnemyAction _fallbackEnemyAction(
+    Map<String, dynamic> enemy,
+    PlayerState player,
+    Map<String, dynamic> boardState,
+  ) {
+    final position = List<int>.from(enemy['position'] as List);
+    final distance =
+        (position[0] - player.position[0]).abs() +
+        (position[1] - player.position[1]).abs();
+    if (distance == 1) {
+      return _enemyAttackAction(
+        enemy,
+        player,
+        'Fallback melee attack while adjacent.',
+      );
+    }
+
+    final direction = _stepToward(position, player.position, boardState);
+    return EnemyAction(
+      enemyId: enemy['id'] as String,
+      actionType: direction == null ? 'wait' : 'move',
+      direction: direction,
+      reasoning: direction == null
+          ? 'Fallback waits because no safe path is open.'
+          : 'Fallback moves one safe step toward the player.',
+      updatedTactics: PlayerTacticsProfile(
+        prefersMelee: true,
+        prefersRanged: false,
+        retreatsWhenLowHp: false,
+        cornersPreference: false,
+        turnsObserved: player.turnCount,
+      ),
+    );
+  }
+
+  String? _stepToward(
+    List<int> from,
+    List<int> to,
+    Map<String, dynamic> boardState,
+  ) {
+    final primaryVertical = (to[0] - from[0]).abs() >= (to[1] - from[1]).abs();
+    final candidates = <MapEntry<String, List<int>>>[
+      if (primaryVertical)
+        MapEntry(to[0] < from[0] ? 'up' : 'down', [
+          to[0] < from[0] ? from[0] - 1 : from[0] + 1,
+          from[1],
+        ]),
+      if (!primaryVertical)
+        MapEntry(to[1] < from[1] ? 'left' : 'right', [
+          from[0],
+          to[1] < from[1] ? from[1] - 1 : from[1] + 1,
+        ]),
+      MapEntry('up', [from[0] - 1, from[1]]),
+      MapEntry('down', [from[0] + 1, from[1]]),
+      MapEntry('left', [from[0], from[1] - 1]),
+      MapEntry('right', [from[0], from[1] + 1]),
+    ];
+    final grid = boardState['grid'] as List;
+    final occupied = (boardState['all_enemy_positions'] as List)
+        .map((e) => List<int>.from(e as List))
+        .toList();
+
+    for (final entry in candidates) {
+      final r = entry.value[0];
+      final c = entry.value[1];
+      if (r < 0 || r >= grid.length) continue;
+      final row = grid[r] as List;
+      if (c < 0 || c >= row.length || row[c] == 0) continue;
+      if (occupied.any((p) => p[0] == r && p[1] == c)) continue;
+      if (r == to[0] && c == to[1]) continue;
+      return entry.key;
+    }
+    return null;
+  }
+
   String _getEnemyName(String? type) {
     switch (type) {
       case 'goblin':
@@ -339,8 +531,9 @@ class _GameScreenState extends ConsumerState<GameScreen>
           color: color,
           isPlayerDamage: isPlayerDamage,
           onComplete: () {
-            if (mounted)
+            if (mounted) {
               setState(() => _floatingTexts.removeWhere((w) => w.key == key));
+            }
           },
         ),
       );
@@ -356,6 +549,13 @@ class _GameScreenState extends ConsumerState<GameScreen>
     GameState gameState,
   ) async {
     final gameStateNotifier = ref.read(gameStateProvider.notifier);
+    gameStateNotifier.completeFloor();
+    final completedState = ref.read(gameStateProvider);
+
+    if (completedState.status == GameStatus.gameOverWin) {
+      await _handleGameOver(session, completedState);
+      return;
+    }
 
     // Show floor cleared overlay
     if (mounted) {
@@ -374,10 +574,10 @@ class _GameScreenState extends ConsumerState<GameScreen>
       final narrative = await _agentService.getNarrative(
         sessionId: session.plan!.sessionId,
         eventType: "floor_cleared",
-        playerClass: gameState.playerState!.playerClass,
-        floorNumber: gameState.currentLevel!.floorNumber,
+        playerClass: completedState.playerState!.playerClass,
+        floorNumber: completedState.currentLevel!.floorNumber,
         theme: session.plan!.theme,
-        context: {"enemies_killed": gameState.playerState!.enemiesKilled},
+        context: {"enemies_killed": completedState.playerState!.enemiesKilled},
       );
 
       if (mounted) {
@@ -389,7 +589,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
       await Future.delayed(const Duration(milliseconds: 2500));
       if (mounted) setState(() => _showNarrativeOverlay = false);
 
-      final nextFloor = gameState.currentLevel!.floorNumber + 1;
+      final nextFloor = completedState.currentLevel!.floorNumber + 1;
       gameStateNotifier.setAiThinking(
         true,
         decision: "LevelGenerator building next floor…",
@@ -399,14 +599,21 @@ class _GameScreenState extends ConsumerState<GameScreen>
         floorNumber: nextFloor,
         difficultyLevel: session.plan!.difficultyLevel,
         theme: session.plan!.theme,
-        playerClass: gameState.playerState!.playerClass,
+        playerClass: completedState.playerState!.playerClass,
         enemySpeedMultiplier: session.plan!.enemySpeedMultiplier,
         itemDropRate: session.plan!.itemDropRate,
-        playerCurrentHp: gameState.playerState!.hp,
+        playerCurrentHp: completedState.playerState!.hp,
       );
 
       gameStateNotifier.startNewFloor(level);
-      _dungeonGame?.loadLevel(level);
+      final playerState = ref.read(gameStateProvider).playerState!;
+      _dungeonGame?.syncPlayerStats(
+        hp: playerState.hp,
+        maxHp: playerState.maxHp,
+        attack: playerState.attack,
+        defense: playerState.defense,
+      );
+      await _dungeonGame?.loadLevel(level);
       gameStateNotifier.setAiThinking(false);
     } catch (e) {
       gameStateNotifier.setAiThinking(false);
@@ -511,7 +718,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
 
   Widget _buildFloorClearedOverlay() {
     return Container(
-      color: Colors.black.withOpacity(0.7),
+      color: Colors.black.withValues(alpha: 0.7),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -551,6 +758,13 @@ class _GameScreenState extends ConsumerState<GameScreen>
   @override
   Widget build(BuildContext context) {
     final gameState = ref.watch(gameStateProvider);
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final compactControls = screenHeight < 720;
+    final dpadButtonSize = compactControls ? 44.0 : 56.0;
+    final dpadCenterSize = compactControls ? 38.0 : 48.0;
+    final dpadIconSize = compactControls ? 22.0 : 28.0;
+    final actionButtonSize = compactControls ? 52.0 : 64.0;
+    final aiPanelHeight = (screenHeight * 0.22).clamp(132.0, 180.0).toDouble();
 
     return PopScope(
       canPop: false,
@@ -607,8 +821,8 @@ class _GameScreenState extends ConsumerState<GameScreen>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          width: 64,
-                          height: 64,
+                          width: actionButtonSize,
+                          height: actionButtonSize,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: DungeonColors.crimson.withValues(alpha: 0.8),
@@ -621,12 +835,14 @@ class _GameScreenState extends ConsumerState<GameScreen>
                             icon: const Icon(
                               Icons.sports_martial_arts,
                               color: Colors.white,
-                              size: 28,
                             ),
+                            iconSize: dpadIconSize,
                             onPressed: () {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('Move into an enemy to attack!'),
+                                  content: Text(
+                                    'Move into an enemy to attack!',
+                                  ),
                                   duration: Duration(seconds: 1),
                                 ),
                               );
@@ -641,6 +857,25 @@ class _GameScreenState extends ConsumerState<GameScreen>
                             fontSize: 10,
                           ),
                         ),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: actionButtonSize,
+                          height: compactControls ? 30 : 36,
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: DungeonColors.gold,
+                              side: const BorderSide(
+                                color: DungeonColors.goldDim,
+                              ),
+                              padding: EdgeInsets.zero,
+                            ),
+                            onPressed: () => _dungeonGame?.handleWait(),
+                            child: const Text(
+                              'WAIT',
+                              style: TextStyle(fontSize: 11),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -648,18 +883,18 @@ class _GameScreenState extends ConsumerState<GameScreen>
                   Padding(
                     padding: const EdgeInsets.only(right: 16, bottom: 8),
                     child: DPadControls(
+                      buttonSize: dpadButtonSize,
+                      centerSize: dpadCenterSize,
+                      iconSize: dpadIconSize,
                       onDirectionTap: (direction) {
                         _dungeonGame?.handlePlayerMove(direction);
-                        ref
-                            .read(gameStateProvider.notifier)
-                            .playerMove(direction);
                       },
                     ),
                   ),
                 ],
               ),
             ),
-            SizedBox(height: 160, child: const AiDecisionPanel()),
+            SizedBox(height: aiPanelHeight, child: const AiDecisionPanel()),
           ],
         ),
       ),

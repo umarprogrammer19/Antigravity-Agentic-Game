@@ -80,7 +80,7 @@ XP for kill = floor(enemy.max_hp / 5)"""
             return ActionResult(
                 action_valid=True,
                 invalid_reason=None,
-                result_type="won",
+                result_type="floor_cleared",
                 new_player_position=new_pos,
                 damage_dealt=0,
                 damage_taken=0,

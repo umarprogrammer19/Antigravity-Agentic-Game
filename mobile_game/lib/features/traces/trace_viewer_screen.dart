@@ -101,7 +101,12 @@ class _TraceViewerScreenState extends State<TraceViewerScreen> {
       sb.writeln();
     }
 
-    Share.share(sb.toString(), subject: 'DungeonMind AI Session Report');
+    SharePlus.instance.share(
+      ShareParams(
+        text: sb.toString(),
+        subject: 'DungeonMind AI Session Report',
+      ),
+    );
   }
 
   Color _getAgentColor(String abbrev) {

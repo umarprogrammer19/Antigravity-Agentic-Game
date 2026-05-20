@@ -55,7 +55,7 @@ class _FloatingDamageNumberState extends State<FloatingDamageNumber>
 
     return AnimatedBuilder(
       animation: _controller,
-      builder: (_, __) => Positioned(
+      builder: (context, child) => Positioned(
         left: widget.isPlayerDamage ? screenW * 0.3 : screenW * 0.55,
         top: screenH * 0.35 + _yOffset.value,
         child: Opacity(

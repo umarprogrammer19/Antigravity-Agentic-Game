@@ -45,7 +45,7 @@ class TileMapComponent extends Component {
             canvas.drawRect(
               rect,
               Paint()
-                ..color = Colors.white.withOpacity(0.04)
+                ..color = Colors.white.withValues(alpha: 0.04)
                 ..style = PaintingStyle.stroke
                 ..strokeWidth = 0.5,
             );
@@ -77,7 +77,7 @@ class TileMapComponent extends Component {
       // Glow
       canvas.drawRect(
         exitRect.inflate(3),
-        Paint()..color = const Color(0xFF059669).withOpacity(0.3),
+        Paint()..color = const Color(0xFF059669).withValues(alpha: 0.3),
       );
       // Tile
       canvas.drawRect(exitRect, Paint()..color = const Color(0xFF059669));

@@ -144,7 +144,8 @@ class ActionResult(BaseModel):
     invalid_reason: str | None = None
     result_type: Literal[
         "moved", "attacked", "killed_enemy", "took_damage",
-        "item_collected", "floor_cleared", "session_won", "session_lost", "invalid"
+        "item_collected", "floor_cleared", "session_won", "session_lost",
+        "wait", "invalid"
     ]
     new_player_position: List[int] | None = None
     damage_dealt: int | None = None

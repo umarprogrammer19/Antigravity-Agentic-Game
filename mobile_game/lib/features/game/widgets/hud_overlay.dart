@@ -23,17 +23,17 @@ class HUDOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hpRatio = maxHp > 0 ? (currentHp / maxHp).clamp(0.0, 1.0) : 0.0;
-    
+
     final hpColor = hpRatio > 0.6
-        ? const Color(0xFF22C55E)   // Green
+        ? const Color(0xFF22C55E) // Green
         : hpRatio > 0.3
-            ? const Color(0xFFF59E0B) // Yellow/amber
-            : const Color(0xFFEF4444); // Red (danger)
+        ? const Color(0xFFF59E0B) // Yellow/amber
+        : const Color(0xFFEF4444); // Red (danger)
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.75),
+        color: Colors.black.withValues(alpha: 0.75),
         border: const Border(
           bottom: BorderSide(color: DungeonColors.goldDim, width: 1),
         ),
@@ -43,7 +43,7 @@ class HUDOverlay extends StatelessWidget {
           // Heart icon
           Icon(Icons.favorite, color: hpColor, size: 16),
           const SizedBox(width: 6),
-          
+
           // HP bar + number
           Expanded(
             flex: 3,
@@ -56,7 +56,7 @@ class HUDOverlay extends StatelessWidget {
                   tween: Tween(begin: hpRatio, end: hpRatio),
                   duration: const Duration(milliseconds: 400),
                   curve: Curves.easeInOut,
-                  builder: (_, value, __) => ClipRRect(
+                  builder: (context, value, child) => ClipRRect(
                     borderRadius: BorderRadius.circular(3),
                     child: LinearProgressIndicator(
                       value: value,
@@ -78,9 +78,9 @@ class HUDOverlay extends StatelessWidget {
               ],
             ),
           ),
-          
+
           const SizedBox(width: 8),
-          
+
           // Floor + Turn
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -103,13 +103,17 @@ class HUDOverlay extends StatelessWidget {
               ),
             ],
           ),
-          
+
           // Pause button
           if (onPauseTap != null)
             IconButton(
               padding: const EdgeInsets.only(left: 8),
               constraints: const BoxConstraints(),
-              icon: const Icon(Icons.pause, color: DungeonColors.textDim, size: 18),
+              icon: const Icon(
+                Icons.pause,
+                color: DungeonColors.textDim,
+                size: 18,
+              ),
               onPressed: onPauseTap,
             ),
         ],

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/action_result.dart';
@@ -17,9 +18,58 @@ class AgentException implements Exception {
 }
 
 class AgentService {
-  static const String baseUrl = 'http://localhost:8000';
+  static String? _runtimeBaseUrl;
+
+  static String get baseUrl {
+    if (_runtimeBaseUrl != null) return _runtimeBaseUrl!;
+    const configured = String.fromEnvironment('DUNGEONMIND_API_URL');
+    if (configured.isNotEmpty) return configured;
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:8000';
+    }
+    return 'http://localhost:8000';
+  }
+
   final http.Client _client = http.Client();
   final Duration _timeout = const Duration(seconds: 30);
+
+  static List<String> get _candidateBaseUrls {
+    const configured = String.fromEnvironment('DUNGEONMIND_API_URL');
+    if (configured.isNotEmpty) return [_normalizeBaseUrl(configured)];
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      return ['http://10.0.2.2:8000', 'http://127.0.0.1:8000'];
+    }
+    return ['http://localhost:8000'];
+  }
+
+  static String _normalizeBaseUrl(String value) {
+    return value.endsWith('/') ? value.substring(0, value.length - 1) : value;
+  }
+
+  Future<String> checkHealth() async {
+    Object? lastError;
+    for (final candidate in _candidateBaseUrls) {
+      final url = Uri.parse('$candidate/health');
+      try {
+        final response = await _client
+            .get(url)
+            .timeout(const Duration(seconds: 4));
+        if (response.statusCode == 200) {
+          _runtimeBaseUrl = candidate;
+          debugPrint('Backend health check OK: $candidate');
+          return candidate;
+        }
+        lastError = 'HTTP ${response.statusCode}: ${response.body}';
+      } catch (e) {
+        lastError = e;
+      }
+    }
+
+    throw AgentException(
+      'Cannot reach backend. Tried ${_candidateBaseUrls.join(', ')}. '
+      'Last error: $lastError',
+    );
+  }
 
   Future<http.Response> _post(
     String endpoint,
@@ -39,7 +89,7 @@ class AgentService {
           .timeout(_timeout);
 
       stopwatch.stop();
-      print(
+      debugPrint(
         'POST $url - ${response.statusCode} - ${stopwatch.elapsedMilliseconds}ms',
       );
 
@@ -49,7 +99,7 @@ class AgentService {
       return response;
     } catch (e) {
       stopwatch.stop();
-      print('POST $url - ERROR - ${stopwatch.elapsedMilliseconds}ms: $e');
+      debugPrint('POST $url - ERROR - ${stopwatch.elapsedMilliseconds}ms: $e');
       throw AgentException('Request failed: $e');
     }
   }
@@ -67,7 +117,7 @@ class AgentService {
           .timeout(_timeout);
 
       stopwatch.stop();
-      print(
+      debugPrint(
         'GET $url - ${response.statusCode} - ${stopwatch.elapsedMilliseconds}ms',
       );
 
@@ -77,7 +127,7 @@ class AgentService {
       return response;
     } catch (e) {
       stopwatch.stop();
-      print('GET $url - ERROR - ${stopwatch.elapsedMilliseconds}ms: $e');
+      debugPrint('GET $url - ERROR - ${stopwatch.elapsedMilliseconds}ms: $e');
       throw AgentException('Request failed: $e');
     }
   }

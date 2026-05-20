@@ -10,8 +10,17 @@ import '../../../app/theme.dart';
 /// the game's movement logic (e.g. DungeonGame._handlePlayerMove).
 class DPadControls extends StatelessWidget {
   final void Function(String direction) onDirectionTap;
+  final double buttonSize;
+  final double iconSize;
+  final double centerSize;
 
-  const DPadControls({super.key, required this.onDirectionTap});
+  const DPadControls({
+    super.key,
+    required this.onDirectionTap,
+    this.buttonSize = 56,
+    this.iconSize = 28,
+    this.centerSize = 48,
+  });
 
   void _onTap(String direction) {
     HapticFeedback.lightImpact();
@@ -27,6 +36,8 @@ class DPadControls extends StatelessWidget {
         _DPadButton(
           icon: Icons.arrow_upward,
           label: "Move up",
+          size: buttonSize,
+          iconSize: iconSize,
           onTap: () => _onTap('up'),
         ),
 
@@ -37,13 +48,15 @@ class DPadControls extends StatelessWidget {
             _DPadButton(
               icon: Icons.arrow_back,
               label: "Move left",
+              size: buttonSize,
+              iconSize: iconSize,
               onTap: () => _onTap('left'),
             ),
 
             // Center indicator (non-interactive)
             Container(
-              width: 48,
-              height: 48,
+              width: centerSize,
+              height: centerSize,
               margin: const EdgeInsets.symmetric(horizontal: 4),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
@@ -62,6 +75,8 @@ class DPadControls extends StatelessWidget {
             _DPadButton(
               icon: Icons.arrow_forward,
               label: "Move right",
+              size: buttonSize,
+              iconSize: iconSize,
               onTap: () => _onTap('right'),
             ),
           ],
@@ -71,6 +86,8 @@ class DPadControls extends StatelessWidget {
         _DPadButton(
           icon: Icons.arrow_downward,
           label: "Move down",
+          size: buttonSize,
+          iconSize: iconSize,
           onTap: () => _onTap('down'),
         ),
       ],
@@ -82,11 +99,15 @@ class DPadControls extends StatelessWidget {
 class _DPadButton extends StatelessWidget {
   final IconData icon;
   final String label;
+  final double size;
+  final double iconSize;
   final VoidCallback onTap;
 
   const _DPadButton({
     required this.icon,
     required this.label,
+    required this.size,
+    required this.iconSize,
     required this.onTap,
   });
 
@@ -99,11 +120,11 @@ class _DPadButton extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(size / 2),
           splashColor: DungeonColors.gold.withValues(alpha: 0.2),
           child: Container(
-            width: 56,
-            height: 56,
+            width: size,
+            height: size,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
@@ -113,7 +134,7 @@ class _DPadButton extends StatelessWidget {
                 width: 1,
               ),
             ),
-            child: Icon(icon, color: DungeonColors.gold, size: 28),
+            child: Icon(icon, color: DungeonColors.gold, size: iconSize),
           ),
         ),
       ),

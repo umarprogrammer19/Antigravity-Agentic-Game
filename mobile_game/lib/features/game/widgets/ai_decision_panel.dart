@@ -34,10 +34,13 @@ class _AiDecisionPanelState extends ConsumerState<AiDecisionPanel> {
     _timer = Timer.periodic(const Duration(milliseconds: 400), (timer) {
       if (mounted) setState(() => _dotCount = (_dotCount % 3) + 1);
     });
-    
+
     // Poll traces every 3 seconds (faster than 5 for responsiveness)
-    _pollTimer = Timer.periodic(const Duration(seconds: 3), (_) => _pollTraces());
-    
+    _pollTimer = Timer.periodic(
+      const Duration(seconds: 3),
+      (_) => _pollTraces(),
+    );
+
     // Poll immediately on start
     Future.delayed(const Duration(seconds: 2), _pollTraces);
   }
@@ -141,7 +144,7 @@ class _AiDecisionPanelState extends ConsumerState<AiDecisionPanel> {
       }
     });
 
-    final bool isExpanded = _currentSize > 0.15;
+    final bool isExpanded = _currentSize > 0.60;
     final backgroundColor = isThinking
         ? DungeonColors.surfaceElevated.withValues(alpha: 0.98)
         : DungeonColors.surfaceElevated.withValues(alpha: 0.90);
@@ -154,9 +157,9 @@ class _AiDecisionPanelState extends ConsumerState<AiDecisionPanel> {
         return false;
       },
       child: DraggableScrollableSheet(
-        initialChildSize: 0.10,
-        minChildSize: 0.10,
-        maxChildSize: 0.60,
+        initialChildSize: 0.42,
+        minChildSize: 0.42,
+        maxChildSize: 0.95,
         builder: (context, scrollController) {
           _innerScrollController = scrollController;
 
@@ -170,14 +173,22 @@ class _AiDecisionPanelState extends ConsumerState<AiDecisionPanel> {
             ),
             child: isExpanded
                 ? _buildExpandedContent(gameState.sessionTraces)
-                : _buildCollapsedContent(isThinking, lastTrace),
+                : _buildCollapsedContent(
+                    isThinking,
+                    lastTrace,
+                    gameState.aiLastDecision,
+                  ),
           );
         },
       ),
     );
   }
 
-  Widget _buildCollapsedContent(bool isThinking, TraceEntry? lastTrace) {
+  Widget _buildCollapsedContent(
+    bool isThinking,
+    TraceEntry? lastTrace,
+    String? liveDecision,
+  ) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -197,31 +208,47 @@ class _AiDecisionPanelState extends ConsumerState<AiDecisionPanel> {
             children: [
               Expanded(
                 child: isThinking
-                    ? Row(children: [
-                        const SizedBox(
-                          width: 16, height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation(DungeonColors.gold),
+                    ? Row(
+                        children: [
+                          const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation(
+                                DungeonColors.gold,
+                              ),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'AI THINKING${'..' * _dotCount}',
-                          style: DungeonText.bodyMedium.copyWith(color: DungeonColors.gold),
-                        ),
-                      ])
+                          const SizedBox(width: 8),
+                          Text(
+                            'AI THINKING${'..' * _dotCount}',
+                            style: DungeonText.bodyMedium.copyWith(
+                              color: DungeonColors.gold,
+                            ),
+                          ),
+                        ],
+                      )
                     : lastTrace != null
-                        ? Text(
-                            '${_getAgentAbbrev(lastTrace.agent)}: ${lastTrace.decision}',
-                            style: DungeonText.bodyMedium,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          )
-                        : Text(
-                            'Waiting for AI session to start...',
-                            style: DungeonText.caption.copyWith(color: DungeonColors.textDim),
-                          ),
+                    ? Text(
+                        '${_getAgentAbbrev(lastTrace.agent)}: ${lastTrace.decision}',
+                        style: DungeonText.bodyMedium,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      )
+                    : liveDecision != null
+                    ? Text(
+                        liveDecision,
+                        style: DungeonText.bodyMedium,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      )
+                    : Text(
+                        'Waiting for AI session to start...',
+                        style: DungeonText.caption.copyWith(
+                          color: DungeonColors.textDim,
+                        ),
+                      ),
               ),
             ],
           ),

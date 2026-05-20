@@ -15,6 +15,7 @@ import 'game_controller.dart';
 enum GameEvent {
   playerMoved,
   playerAttacked,
+  playerWaited,
   enemyKilled,
   floorCleared,
   playerDied,
@@ -23,6 +24,11 @@ enum GameEvent {
 
 class DungeonGame extends FlameGame with KeyboardEvents {
   LevelSchema levelSchema;
+  final String playerClass;
+  int playerHp;
+  int playerMaxHp;
+  int playerAttack;
+  int playerDefense;
   final void Function(GameEvent, {dynamic data})? onGameEvent;
 
   late TileMapComponent tileMap;
@@ -31,28 +37,79 @@ class DungeonGame extends FlameGame with KeyboardEvents {
   late HUDComponent hud;
   late GameController gameController;
 
-  DungeonGame({required this.levelSchema, this.onGameEvent});
+  DungeonGame({
+    required this.levelSchema,
+    required this.playerClass,
+    required this.playerHp,
+    required this.playerMaxHp,
+    required this.playerAttack,
+    required this.playerDefense,
+    this.onGameEvent,
+  });
 
-  void loadLevel(LevelSchema newLevel) {
+  Future<void> loadLevel(LevelSchema newLevel) async {
     levelSchema = newLevel;
-    // For simplicity in this scaffold, we just reload everything.
-    // In a real app we'd carefully clean up components and add new ones.
     removeAll([tileMap, player, ...enemies, hud]);
-    onLoad();
+    await _loadComponents();
+  }
+
+  void syncPlayerStats({
+    required int hp,
+    required int maxHp,
+    required int attack,
+    required int defense,
+  }) {
+    playerHp = hp;
+    playerMaxHp = maxHp;
+    playerAttack = attack;
+    playerDefense = defense;
   }
 
   void applyEnemyAction(EnemyAction action) {
     final enemy = enemies.where((e) => e.id == action.enemyId).firstOrNull;
     if (enemy == null || !enemy.isAlive) return;
 
-    // Use the component's own method which calls _updateScreenPosition
     enemy.applyAction(action);
+  }
+
+  List<int>? enemyMoveTarget(EnemyAction action) {
+    if (action.actionType != 'move' || action.direction == null) return null;
+
+    final enemy = enemies.where((e) => e.id == action.enemyId).firstOrNull;
+    if (enemy == null || !enemy.isAlive) return null;
+
+    return gameController.getAdjacentPosition([
+      enemy.gridRow,
+      enemy.gridCol,
+    ], action.direction!);
+  }
+
+  bool isEnemyMoveAllowed(EnemyAction action) {
+    final target = enemyMoveTarget(action);
+    if (target == null) return false;
+
+    if (target[0] == player.gridRow && target[1] == player.gridCol) {
+      return false;
+    }
+
+    if (!gameController.isTileWalkable(
+      target[0],
+      target[1],
+      levelSchema.grid,
+    )) {
+      return false;
+    }
+
+    return gameController.isEnemy(target, enemies) == null;
   }
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    await _loadComponents();
+  }
 
+  Future<void> _loadComponents() async {
     gameController = GameController(levelSchema, (action) {
       // Typically used for local validation
     });
@@ -65,11 +122,11 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     player = PlayerComponent(
       gridRow: levelSchema.playerStart[0],
       gridCol: levelSchema.playerStart[1],
-      hp: 150, // These would normally come from PlayerState
-      maxHp: 150,
-      attack: 20,
-      defense: 8,
-      playerClass: levelSchema.theme, // Fallback placeholder
+      hp: playerHp,
+      maxHp: playerMaxHp,
+      attack: playerAttack,
+      defense: playerDefense,
+      playerClass: playerClass,
     );
     await add(player);
 
@@ -148,7 +205,13 @@ class DungeonGame extends FlameGame with KeyboardEvents {
     final enemyAtTarget = gameController.isEnemy(targetPos, enemies);
     if (enemyAtTarget != null && enemyAtTarget.isAlive) {
       // PLAYER ATTACKS ENEMY
-      final damage = gameController.computeDamage(20, enemyAtTarget.defense);
+      final effectiveAttack = player.playerClass == 'warrior'
+          ? (player.attack * 1.5).round()
+          : player.attack;
+      final damage = gameController.computeDamage(
+        effectiveAttack,
+        enemyAtTarget.defense,
+      );
       enemyAtTarget.takeHit(damage);
       // Trigger visual attack flash on player
       player.showAttack();
@@ -161,17 +224,25 @@ class DungeonGame extends FlameGame with KeyboardEvents {
           'damage': damage,
           'enemyId': enemyAtTarget.id,
           'enemyKilled': !enemyAtTarget.isAlive,
+          'xpGained': enemyAtTarget.maxHp ~/ 5,
         },
       );
     } else {
       player.move(direction);
-      onGameEvent?.call(GameEvent.playerMoved, data: {'direction': direction});
 
       // Check exit
       if (player.gridRow == levelSchema.exitPosition[0] &&
           player.gridCol == levelSchema.exitPosition[1]) {
-        onGameEvent?.call(GameEvent.floorCleared);
+        onGameEvent?.call(
+          GameEvent.floorCleared,
+          data: {
+            'position': [player.gridRow, player.gridCol],
+          },
+        );
+        return;
       }
+
+      onGameEvent?.call(GameEvent.playerMoved, data: {'direction': direction});
 
       // Check items
       for (var item in levelSchema.items) {
@@ -181,5 +252,9 @@ class DungeonGame extends FlameGame with KeyboardEvents {
         }
       }
     }
+  }
+
+  void handleWait() {
+    onGameEvent?.call(GameEvent.playerWaited, data: {'direction': 'wait'});
   }
 }

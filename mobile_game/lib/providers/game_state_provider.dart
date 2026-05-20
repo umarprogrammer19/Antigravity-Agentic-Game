@@ -49,6 +49,8 @@ class PlayerState {
   });
 
   PlayerState copyWith({
+    String? playerId,
+    String? playerClass,
     List<int>? position,
     int? hp,
     int? maxHp,
@@ -63,8 +65,8 @@ class PlayerState {
     Map<String, dynamic>? activeBuffs,
   }) {
     return PlayerState(
-      playerId: playerId,
-      playerClass: playerClass,
+      playerId: playerId ?? this.playerId,
+      playerClass: playerClass ?? this.playerClass,
       position: position ?? this.position,
       hp: hp ?? this.hp,
       maxHp: maxHp ?? this.maxHp,
@@ -173,44 +175,104 @@ class GameStateNotifier extends StateNotifier<GameState> {
         ),
       );
 
+  ({int hp, int attack, int defense}) _classStats(String playerClass) {
+    switch (playerClass) {
+      case 'mage':
+        return (hp: 80, attack: 35, defense: 3);
+      case 'ranger':
+        return (hp: 100, attack: 25, defense: 5);
+      case 'warrior':
+      default:
+        return (hp: 150, attack: 20, defense: 8);
+    }
+  }
+
+  void initializeRun({required String playerId, required String playerClass}) {
+    final stats = _classStats(playerClass);
+    state = state.copyWith(
+      status: GameStatus.loading,
+      playerState: PlayerState(
+        playerId: playerId,
+        playerClass: playerClass,
+        position: const [0, 0],
+        hp: stats.hp,
+        maxHp: stats.hp,
+        attack: stats.attack,
+        defense: stats.defense,
+        turnCount: 0,
+        floorsCleared: 0,
+        enemiesKilled: 0,
+        score: 0,
+        specialUsed: false,
+        inventory: const [],
+        activeBuffs: const {},
+      ),
+      enemies: const [],
+      items: const [],
+      sessionTraces: const [],
+      turnPhase: TurnPhase.playerTurn,
+      aiIsThinking: false,
+      aiLastDecision: null,
+    );
+  }
+
   void startNewFloor(LevelSchema level) {
     final currentPlayer = state.playerState;
-    
-    // Only reset position; keep HP, score, etc. from previous floor
-    final updatedPlayer = currentPlayer?.copyWith(
-      position: level.playerStart,
-      floorsCleared: (currentPlayer.floorsCleared),
-    ) ?? PlayerState(
-      playerId: '',
-      playerClass: 'warrior',
-      position: level.playerStart,
-      hp: 150,
-      maxHp: 150,
-      attack: 20,
-      defense: 8,
-      turnCount: 0,
-      floorsCleared: 0,
-      enemiesKilled: 0,
-      score: 0,
-      specialUsed: false,
-      inventory: [],
-      activeBuffs: {},
-    );
 
-    final enemies = level.enemies.map((e) => {
-      'id': e.id, 'type': e.type, 'position': e.position,
-      'hp': e.hp, 'max_hp': e.maxHp, 'attack': e.attack,
-      'defense': e.defense, 'behavior': e.behavior, 'is_alive': true,
-    }).toList();
+    // Only reset position; keep HP, score, etc. from previous floor
+    final updatedPlayer =
+        currentPlayer?.copyWith(
+          position: level.playerStart,
+          specialUsed: false,
+        ) ??
+        PlayerState(
+          playerId: '',
+          playerClass: 'warrior',
+          position: level.playerStart,
+          hp: 150,
+          maxHp: 150,
+          attack: 20,
+          defense: 8,
+          turnCount: 0,
+          floorsCleared: 0,
+          enemiesKilled: 0,
+          score: 0,
+          specialUsed: false,
+          inventory: [],
+          activeBuffs: {},
+        );
+
+    final enemies = level.enemies
+        .map(
+          (e) => {
+            'id': e.id,
+            'type': e.type,
+            'position': e.position,
+            'hp': e.hp,
+            'max_hp': e.maxHp,
+            'attack': e.attack,
+            'defense': e.defense,
+            'behavior': e.behavior,
+            'is_alive': true,
+          },
+        )
+        .toList();
 
     state = state.copyWith(
       status: GameStatus.playing,
       currentLevel: level,
       playerState: updatedPlayer,
       enemies: enemies,
-      items: level.items.map((i) => {
-        'id': i.id, 'type': i.type, 'position': i.position, 'collected': false,
-      }).toList(),
+      items: level.items
+          .map(
+            (i) => {
+              'id': i.id,
+              'type': i.type,
+              'position': i.position,
+              'collected': false,
+            },
+          )
+          .toList(),
       turnPhase: TurnPhase.playerTurn,
       aiIsThinking: false,
     );
@@ -230,10 +292,31 @@ class GameStateNotifier extends StateNotifier<GameState> {
     var newPlayerState = state.playerState!;
     var newEnemies = List<Map<String, dynamic>>.from(state.enemies);
 
+    newPlayerState = newPlayerState.copyWith(
+      turnCount: newPlayerState.turnCount + 1,
+    );
+
     if (result.newPlayerPosition != null) {
       newPlayerState = newPlayerState.copyWith(
         position: result.newPlayerPosition,
       );
+    }
+
+    if (result.damageDealt != null &&
+        result.damageDealt! > 0 &&
+        result.enemyIdKilled != null) {
+      final target = result.enemyIdKilled;
+      newEnemies = newEnemies.map((e) {
+        if (e['id'] != target) return e;
+        final updated = Map<String, dynamic>.from(e);
+        final hp = ((updated['hp'] as int? ?? 0) - result.damageDealt!).clamp(
+          0,
+          updated['max_hp'] as int? ?? 999,
+        );
+        updated['hp'] = hp;
+        if (hp == 0) updated['is_alive'] = false;
+        return updated;
+      }).toList();
     }
 
     if (result.enemyKilled && result.enemyIdKilled != null) {
@@ -263,6 +346,54 @@ class GameStateNotifier extends StateNotifier<GameState> {
     );
   }
 
+  void applyLocalAttack({
+    required String enemyId,
+    required int damage,
+    required bool enemyKilled,
+    required int xpGained,
+  }) {
+    if (state.playerState == null) return;
+
+    final updatedEnemies = state.enemies.map((e) {
+      if (e['id'] != enemyId) return e;
+      final updated = Map<String, dynamic>.from(e);
+      final hp = ((updated['hp'] as int? ?? 0) - damage).clamp(
+        0,
+        updated['max_hp'] as int? ?? 999,
+      );
+      updated['hp'] = hp;
+      updated['is_alive'] = !enemyKilled && hp > 0;
+      return updated;
+    }).toList();
+
+    state = state.copyWith(
+      playerState: state.playerState!.copyWith(
+        turnCount: state.playerState!.turnCount + 1,
+        enemiesKilled: enemyKilled
+            ? state.playerState!.enemiesKilled + 1
+            : state.playerState!.enemiesKilled,
+        score: state.playerState!.score + xpGained,
+      ),
+      enemies: updatedEnemies,
+      turnPhase: TurnPhase.enemyTurn,
+    );
+  }
+
+  void completeFloor() {
+    if (state.playerState == null || state.currentLevel == null) return;
+
+    final cleared = state.currentLevel!.floorNumber;
+    final won = cleared >= 5;
+    state = state.copyWith(
+      status: won ? GameStatus.gameOverWin : GameStatus.floorCleared,
+      playerState: state.playerState!.copyWith(
+        floorsCleared: cleared,
+        score: state.playerState!.score + 100,
+      ),
+      turnPhase: TurnPhase.transition,
+    );
+  }
+
   void setAiThinking(bool isThinking, {String? decision}) {
     state = state.copyWith(
       aiIsThinking: isThinking,
@@ -272,14 +403,28 @@ class GameStateNotifier extends StateNotifier<GameState> {
 
   void applyEnemyDamage(int damage) {
     if (state.playerState == null) return;
-    
-    final newHp = (state.playerState!.hp - damage).clamp(0, state.playerState!.maxHp);
+
+    final newHp = (state.playerState!.hp - damage).clamp(
+      0,
+      state.playerState!.maxHp,
+    );
     final isAlive = newHp > 0;
-    
+
     state = state.copyWith(
       playerState: state.playerState!.copyWith(hp: newHp),
       status: isAlive ? GameStatus.playing : GameStatus.gameOverLose,
     );
+  }
+
+  void applyEnemyMove(String enemyId, List<int> position) {
+    final updatedEnemies = state.enemies.map((enemy) {
+      if (enemy['id'] != enemyId) return enemy;
+      final updated = Map<String, dynamic>.from(enemy);
+      updated['position'] = position;
+      return updated;
+    }).toList();
+
+    state = state.copyWith(enemies: updatedEnemies);
   }
 
   void addTrace(TraceEntry trace) {
@@ -296,15 +441,26 @@ class GameStateNotifier extends StateNotifier<GameState> {
   /// and visually moved the player.
   void playerMove(String direction) {
     if (state.playerState == null || state.currentLevel == null) return;
-    if (state.turnPhase != TurnPhase.playerTurn) return; // Block during enemy turn
+    if (state.turnPhase != TurnPhase.playerTurn) {
+      return; // Block during enemy turn
+    }
 
     final pos = List<int>.from(state.playerState!.position);
     switch (direction) {
-      case 'up':    pos[0]--; break;
-      case 'down':  pos[0]++; break;
-      case 'left':  pos[1]--; break;
-      case 'right': pos[1]++; break;
-      default: return;
+      case 'up':
+        pos[0]--;
+        break;
+      case 'down':
+        pos[0]++;
+        break;
+      case 'left':
+        pos[1]--;
+        break;
+      case 'right':
+        pos[1]++;
+        break;
+      default:
+        return;
     }
 
     final grid = state.currentLevel!.grid;

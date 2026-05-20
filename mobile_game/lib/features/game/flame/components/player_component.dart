@@ -106,13 +106,19 @@ class PlayerComponent extends PositionComponent
     final rect = Rect.fromLTWH(0, 0, width, height);
 
     // Background
+    final classColor = switch (playerClass) {
+      'mage' => DungeonColors.agentLevel,
+      'ranger' => DungeonColors.agentRival,
+      _ => DungeonColors.sapphire,
+    };
+
     final bgColor = _isAttacking
         ? DungeonColors
               .gold // Flash gold when attacking
         : _isFlashing
         ? DungeonColors
               .crimson // Flash red when taking damage
-        : DungeonColors.sapphire; // Normal blue
+        : classColor;
 
     final bgPaint = Paint()..color = bgColor;
     canvas.drawRect(rect, bgPaint);
