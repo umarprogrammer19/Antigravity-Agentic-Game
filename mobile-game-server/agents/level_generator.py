@@ -7,6 +7,7 @@ from models.game_schemas import ItemSpec, LevelSchema, validate_level_playable
 from exceptions import AgentValidationError
 from fallbacks.fallback_levels import FALLBACK_LEVELS
 from config import redis_client
+from utils.schema_converter import convert_pydantic_schema_for_gemini
 
 
 class LevelGeneratorAgent(BaseAgent):
@@ -278,28 +279,8 @@ player_analysis MUST contain your tactical analysis of the player_move_history p
         theme = context.get("theme", "enchanted_forest")
         player_class = context.get("player_class", "warrior")
 
-        # Step 8: Check Redis cache
-        level_hash = self._get_level_hash(context)
-        cache_key = f"level:{level_hash}"
-        try:
-            if redis_client:
-                cached = await redis_client.get(cache_key)
-                if cached:
-                    level_obj, _ = self._safe_parse_json(cached, LevelSchema)
-                    if level_obj:
-                        self.log_trace(
-                            reasoning=f"Found cached level for Floor {floor_number}, difficulty {difficulty_level}, theme {theme}",
-                            tool_called="check_cache",
-                            tool_input={"cache_key": cache_key},
-                            tool_output={"cache_hit": True},
-                            decision="Using cached level layout",
-                        )
-                        # ensure the floor number and an unique level id is set for this session instance
-                        level_obj.floor_number = floor_number
-                        level_obj.level_id = str(uuid.uuid4())
-                        return level_obj
-        except Exception:
-            pass  # ignore redis errors
+        # CACHING DISABLED - Always generate fresh levels for unique gameplay
+        # This ensures every session and every floor has a unique AI-generated layout
 
         # Step 1: Analyze parameters (log trace)
         self.log_trace(
@@ -315,12 +296,17 @@ player_analysis MUST contain your tactical analysis of the player_move_history p
 
         # Step 2: Build user prompt
         user_prompt = self._build_user_prompt(context)
+
+        # Convert Pydantic schema to Gemini-compatible format
+        pydantic_schema = LevelSchema.model_json_schema()
+        gemini_schema = convert_pydantic_schema_for_gemini(pydantic_schema)
+
         generation_config = genai.GenerationConfig(
             temperature=0.7,
             top_p=0.95,
             max_output_tokens=2000,
             response_mime_type="application/json",
-            response_schema=LevelSchema.model_json_schema(),
+            response_schema=gemini_schema,
         )
 
         level_obj = None
@@ -362,36 +348,40 @@ player_analysis MUST contain your tactical analysis of the player_move_history p
                     raise AgentValidationError("Retry failed validation.")
 
             # Step 9: Log final trace
+            from config import logger
+            logger.info(f"✅ AI-Generated Level: Floor {floor_number}, Theme: {theme}, Size: {level_obj.grid_rows}x{level_obj.grid_cols}, Enemies: {len(level_obj.enemies)}, Items: {len(level_obj.items)}")
+
             self.log_trace(
-                reasoning=f"Generating {level_obj.grid_rows}x{level_obj.grid_cols} grid",
+                reasoning=f"✅ Successfully generated unique {level_obj.grid_rows}x{level_obj.grid_cols} dungeon for {theme} theme",
                 tool_called="generate_grid",
-                tool_input={},
-                tool_output={"grid_generated": True},
-                decision="Grid generated and validated",
+                tool_input={"difficulty": difficulty_level, "theme": theme, "floor": floor_number},
+                tool_output={"grid_generated": True, "enemies": len(level_obj.enemies), "items": len(level_obj.items)},
+                decision=f"✅ AI-Generated Floor {floor_number} ready with {len(level_obj.enemies)} enemies",
                 duration_ms=duration,
                 tokens_used=tokens,
             )
 
         except Exception as e:
             # Step 6: If retry fails -> return FALLBACK_LEVEL
+            import traceback
+            error_details = traceback.format_exc()
+            from config import logger
+            logger.error(f"❌ LevelGenerator FAILED for floor {floor_number}, theme {theme}: {str(e)}\n{error_details}")
+
             level_obj = self._get_fallback_level(theme, floor_number, player_class)
             self.log_trace(
-                reasoning=f"AI generation failed ({str(e)}). Using fallback.",
+                reasoning=f"⚠️ AI GENERATION FAILED: {str(e)}. Using static fallback level - THIS SHOULD NOT HAPPEN IN PRODUCTION!",
                 tool_called="use_fallback",
-                tool_input={"theme": theme, "floor": floor_number},
-                tool_output={"level_id": level_obj.level_id},
-                decision="Used fallback level",
+                tool_input={"theme": theme, "floor": floor_number, "error": str(e)},
+                tool_output={"level_id": level_obj.level_id, "fallback_used": True},
+                decision="❌ FALLBACK LEVEL USED - AI generation failed",
                 fallback_used=True,
             )
             return level_obj
 
-        # Step 8: Cache to Redis with TTL=86400
+        # Ensure unique level ID
         level_obj.level_id = str(uuid.uuid4())
-        try:
-            if redis_client:
-                await redis_client.setex(cache_key, 86400, level_obj.model_dump_json())
-        except Exception:
-            pass
+        level_obj.floor_number = floor_number
 
-        # Step 10: Return validated LevelSchema
+        # Return validated AI-generated LevelSchema
         return level_obj

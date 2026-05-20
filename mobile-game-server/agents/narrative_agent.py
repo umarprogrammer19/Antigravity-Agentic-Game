@@ -5,6 +5,7 @@ import google.generativeai as genai
 from agents.base_agent import BaseAgent
 from models.game_schemas import NarrativeResponse
 from config import redis_client
+from utils.schema_converter import convert_pydantic_schema_for_gemini
 
 NARRATIVE_FALLBACKS = {
     "session_start": {
@@ -96,12 +97,16 @@ EVENT CONTEXT:
 Write the narrative text now. Remember: max 200 chars, dark fantasy tone, no exclamation marks.
 Make it specific to the {theme} theme and the {player_class} class if relevant."""
 
+        # Convert Pydantic schema to Gemini-compatible format
+        pydantic_schema = NarrativeResponse.model_json_schema()
+        gemini_schema = convert_pydantic_schema_for_gemini(pydantic_schema)
+
         generation_config = genai.GenerationConfig(
             temperature=0.8,
             top_p=0.95,
             max_output_tokens=300,
             response_mime_type="application/json",
-            response_schema=NarrativeResponse.model_json_schema(),
+            response_schema=gemini_schema,
         )
 
         try:

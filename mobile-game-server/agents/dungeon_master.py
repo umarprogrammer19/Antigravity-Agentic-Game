@@ -6,6 +6,7 @@ import google.generativeai as genai
 from agents.base_agent import BaseAgent
 from models.game_schemas import SessionPlan
 from exceptions import AgentValidationError
+from utils.schema_converter import convert_pydantic_schema_for_gemini
 
 FALLBACK_SESSION_PLAN = SessionPlan(
     session_id=str(uuid.uuid4()),
@@ -241,12 +242,16 @@ Output a complete SessionPlan JSON now. Be specific in dm_reasoning.
 Computed loss_rate = {history.get('losses', 0)} / {max(1, history.get('total_sessions', 0))} = {loss_rate:.2f}
 """
 
+        # Convert Pydantic schema to Gemini-compatible format
+        pydantic_schema = SessionPlan.model_json_schema()
+        gemini_schema = convert_pydantic_schema_for_gemini(pydantic_schema)
+
         generation_config = genai.GenerationConfig(
             temperature=0.7,
             top_p=0.95,
             max_output_tokens=1500,
             response_mime_type="application/json",
-            response_schema=SessionPlan.model_json_schema(),
+            response_schema=gemini_schema,
         )
 
         plan_obj = None

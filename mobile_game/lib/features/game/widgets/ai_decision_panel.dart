@@ -182,23 +182,26 @@ class _AiDecisionPanelState extends ConsumerState<AiDecisionPanel> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: widget.onToggleExpanded,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 80, vertical: 4),
-            child: Container(
-              width: 32,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[600],
-                borderRadius: BorderRadius.circular(2),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            child: Center(
+              child: Container(
+                width: 60,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: DungeonColors.gold.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(3),
+                ),
               ),
             ),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Row(
@@ -263,23 +266,26 @@ class _AiDecisionPanelState extends ConsumerState<AiDecisionPanel> {
 
     return Column(
       children: [
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: widget.onToggleExpanded,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 80, vertical: 4),
-            child: Container(
-              width: 32,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[600],
-                borderRadius: BorderRadius.circular(2),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            child: Center(
+              child: Container(
+                width: 60,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: DungeonColors.gold.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(3),
+                ),
               ),
             ),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         // Header
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),

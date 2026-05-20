@@ -6,6 +6,7 @@ from agents.base_agent import BaseAgent
 from models.game_schemas import EnemyAction
 from exceptions import AgentValidationError
 from config import redis_client
+from utils.schema_converter import convert_pydantic_schema_for_gemini
 
 
 def manhattan_distance(p1, p2):
@@ -308,12 +309,16 @@ Available moves from {enemy_state.get('position', [0,0])}:
 Choose the best action. Update updated_tactics to reflect what you observed.
 Keep reasoning under 80 characters — it shows in the game's live AI panel."""
 
+        # Convert Pydantic schema to Gemini-compatible format
+        pydantic_schema = EnemyAction.model_json_schema()
+        gemini_schema = convert_pydantic_schema_for_gemini(pydantic_schema)
+
         generation_config = genai.GenerationConfig(
             temperature=0.4,
             top_p=0.9,
             max_output_tokens=600,
             response_mime_type="application/json",
-            response_schema=EnemyAction.model_json_schema(),
+            response_schema=gemini_schema,
         )
 
         try:
