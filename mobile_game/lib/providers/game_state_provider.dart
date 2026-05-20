@@ -113,6 +113,8 @@ class GameState {
   final List<TraceEntry> sessionTraces;
   final List<Map<String, dynamic>> moveHistory;
   final String? playerAnalysis;
+  final int? turnCountAtFloorStart;
+  final int? enemiesKilledAtFloorStart;
 
   GameState({
     this.status = GameStatus.loading,
@@ -127,6 +129,8 @@ class GameState {
     this.sessionTraces = const [],
     this.moveHistory = const [],
     this.playerAnalysis,
+    this.turnCountAtFloorStart,
+    this.enemiesKilledAtFloorStart,
   });
 
   GameState copyWith({
@@ -142,6 +146,8 @@ class GameState {
     List<TraceEntry>? sessionTraces,
     List<Map<String, dynamic>>? moveHistory,
     String? playerAnalysis,
+    int? turnCountAtFloorStart,
+    int? enemiesKilledAtFloorStart,
   }) {
     return GameState(
       status: status ?? this.status,
@@ -156,6 +162,8 @@ class GameState {
       sessionTraces: sessionTraces ?? this.sessionTraces,
       moveHistory: moveHistory ?? this.moveHistory,
       playerAnalysis: playerAnalysis ?? this.playerAnalysis,
+      turnCountAtFloorStart: turnCountAtFloorStart ?? this.turnCountAtFloorStart,
+      enemiesKilledAtFloorStart: enemiesKilledAtFloorStart ?? this.enemiesKilledAtFloorStart,
     );
   }
 }
@@ -287,6 +295,8 @@ class GameStateNotifier extends StateNotifier<GameState> {
       aiIsThinking: false,
       moveHistory: const [], // Clear buffer for new floor
       playerAnalysis: level.playerAnalysis,
+      turnCountAtFloorStart: updatedPlayer.turnCount,
+      enemiesKilledAtFloorStart: updatedPlayer.enemiesKilled,
     );
   }
 

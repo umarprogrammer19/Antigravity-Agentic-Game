@@ -245,7 +245,8 @@ narrative_hook should reference the {theme} atmosphere specifically.
 player_analysis MUST contain your tactical analysis of the player_move_history provided above, and how this new level counters or complements their playstyle."""
 
     def _get_level_hash(self, context: dict) -> str:
-        data = f"{context.get('difficulty_level', 1)}-{context.get('theme', 'enchanted_forest')}-{context.get('player_class', 'warrior')}-{context.get('floor_number', 1)}"
+        # Include session_id to ensure unique levels per session
+        data = f"{context.get('session_id', 'default')}-{context.get('difficulty_level', 1)}-{context.get('theme', 'enchanted_forest')}-{context.get('player_class', 'warrior')}-{context.get('floor_number', 1)}"
         return hashlib.md5(data.encode()).hexdigest()
 
     def _get_fallback_level(

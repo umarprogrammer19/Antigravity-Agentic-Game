@@ -304,4 +304,12 @@ class AgentService {
     final entries = data['entries'] as List<dynamic>? ?? const [];
     return entries.map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
+
+  Future<Map<String, dynamic>> getPlayerHistory({required String playerId}) async {
+    final response = await _get(
+      '/players/$playerId/history',
+      headers: {'X-Player-ID': playerId},
+    );
+    return jsonDecode(response.body);
+  }
 }

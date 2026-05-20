@@ -57,6 +57,13 @@ class FirebaseService:
             for doc in sessions_docs:
                 history["last_5_sessions"].append(doc.to_dict())
 
+            # Read high score from leaderboard
+            leaderboard_doc = fs.collection("leaderboard").document(player_id).get()
+            if leaderboard_doc.exists:
+                history["high_score"] = leaderboard_doc.get("score")
+            else:
+                history["high_score"] = 0
+
             # Cache
             try:
                 if redis_client:
@@ -120,6 +127,15 @@ class FirebaseService:
                 stats_ref.set(init_data)
             else:
                 stats_ref.update(updates)
+
+                # Recalculate avg_floors_cleared after update
+                updated_doc = stats_ref.get()
+                if updated_doc.exists:
+                    data = updated_doc.to_dict()
+                    total_sessions_new = data.get("total_sessions", 1)
+                    total_floors_new = data.get("total_floors_cleared", 0)
+                    avg_floors = total_floors_new / max(1, total_sessions_new)
+                    stats_ref.update({"avg_floors_cleared": avg_floors})
 
             # Update leaderboard
             score = session_data.get("score", 0)

@@ -133,6 +133,9 @@ class _PostGameScreenState extends ConsumerState<PostGameScreen>
           _isLoading = false;
         });
         _scoreController.forward();
+
+        // Invalidate player provider to refresh stats on home screen
+        ref.invalidate(playerProvider);
       }
     } catch (e) {
       if (mounted) {

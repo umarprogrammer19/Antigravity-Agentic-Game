@@ -106,7 +106,7 @@ class BaseAgent(ABC):
                 self._model.generate_content_async(
                     user_prompt, generation_config=generation_config
                 ),
-                timeout=10.0,
+                timeout=30.0,
             )
             duration_ms = int((time.time() - start) * 1000)
             tokens = (
@@ -116,7 +116,7 @@ class BaseAgent(ABC):
             )
             return response.text, tokens, duration_ms
         except asyncio.TimeoutError:
-            raise GeminiCallError("Gemini API call timed out after 10.0 seconds")
+            raise GeminiCallError("Gemini API call timed out after 30.0 seconds")
         except Exception as e:
             raise GeminiCallError(f"Gemini API call failed: {str(e)}")
 

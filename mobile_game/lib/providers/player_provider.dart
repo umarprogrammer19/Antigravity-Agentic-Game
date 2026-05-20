@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'auth_provider.dart';
+import '../services/agent_service.dart';
 
 class PlayerModel {
   final String displayName;
@@ -42,14 +43,24 @@ class PlayerNotifier extends AsyncNotifier<PlayerModel> {
       return PlayerModel(displayName: "Guest");
     }
 
-    // In a real app, we would load from Firestore here using firebase_service
-    // For now, return a placeholder model
-    return PlayerModel(
-      displayName: user.displayName ?? "Adventurer",
-      highScore: 0,
-      wins: 0,
-      losses: 0,
-    );
+    try {
+      final agentService = AgentService();
+      final history = await agentService.getPlayerHistory(playerId: user.uid);
+      
+      return PlayerModel(
+        displayName: user.displayName ?? "Adventurer",
+        highScore: history['high_score'] ?? 0,
+        wins: history['wins'] ?? 0,
+        losses: history['losses'] ?? 0,
+      );
+    } catch (e) {
+      return PlayerModel(
+        displayName: user.displayName ?? "Adventurer",
+        highScore: 0,
+        wins: 0,
+        losses: 0,
+      );
+    }
   }
 
   void setClass(String playerClass) {

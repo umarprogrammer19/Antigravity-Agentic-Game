@@ -540,14 +540,46 @@ class _GameScreenState extends ConsumerState<GameScreen>
         decision: "NarrativeAgent describing victory…",
       );
       final nextFloor = completedState.currentLevel!.floorNumber + 1;
+
+      // Calculate adaptive difficulty based on player performance
+      final baseDifficulty = session.plan!.difficultyLevel + (nextFloor - 1);
+      final playerState = completedState.playerState!;
+
+      // Performance factors
+      final hpPercentage = playerState.hp / playerState.maxHp;
+      final turnsThisFloor = playerState.turnCount - (completedState.turnCountAtFloorStart ?? 0);
+      final enemiesKilledThisFloor = playerState.enemiesKilled - (completedState.enemiesKilledAtFloorStart ?? 0);
+      final totalEnemiesThisFloor = completedState.currentLevel!.enemyCount;
+
+      // Adjust difficulty:
+      // +1 if player cleared with >80% HP (too easy)
+      // +1 if player cleared in <15 turns (very fast)
+      // -1 if player has <30% HP (struggling)
+      // +1 if player killed all enemies efficiently
+      var difficultyAdjustment = 0;
+
+      if (hpPercentage > 0.8 && turnsThisFloor < 15) {
+        difficultyAdjustment += 1;
+      } else if (hpPercentage < 0.3) {
+        difficultyAdjustment -= 1;
+      }
+
+      if (enemiesKilledThisFloor >= totalEnemiesThisFloor && turnsThisFloor < 20) {
+        difficultyAdjustment += 1;
+      }
+
+      final adaptiveDifficulty = (baseDifficulty + difficultyAdjustment).clamp(1, 10);
+
+      debugPrint('Adaptive difficulty: base=$baseDifficulty, adjustment=$difficultyAdjustment, final=$adaptiveDifficulty (HP: ${(hpPercentage * 100).toInt()}%, turns: $turnsThisFloor)');
+
       gameStateNotifier.setAiThinking(
         true,
-        decision: "LevelGenerator building next floor…",
+        decision: "LevelGenerator building next floor (difficulty $adaptiveDifficulty)…",
       );
       final level = await _agentService.generateLevel(
         sessionId: session.plan!.sessionId,
         floorNumber: nextFloor,
-        difficultyLevel: session.plan!.difficultyLevel,
+        difficultyLevel: adaptiveDifficulty,
         theme: session.plan!.theme,
         playerClass: completedState.playerState!.playerClass,
         enemySpeedMultiplier: session.plan!.enemySpeedMultiplier,
@@ -557,12 +589,12 @@ class _GameScreenState extends ConsumerState<GameScreen>
       );
 
       gameStateNotifier.startNewFloor(level);
-      final playerState = ref.read(gameStateProvider).playerState!;
+      final updatedPlayerState = ref.read(gameStateProvider).playerState!;
       _dungeonGame?.syncPlayerStats(
-        hp: playerState.hp,
-        maxHp: playerState.maxHp,
-        attack: playerState.attack,
-        defense: playerState.defense,
+        hp: updatedPlayerState.hp,
+        maxHp: updatedPlayerState.maxHp,
+        attack: updatedPlayerState.attack,
+        defense: updatedPlayerState.defense,
       );
       await _dungeonGame?.loadLevel(level);
       gameStateNotifier.setAiThinking(false);

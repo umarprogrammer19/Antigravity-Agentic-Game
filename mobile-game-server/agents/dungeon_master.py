@@ -242,9 +242,9 @@ Computed loss_rate = {history.get('losses', 0)} / {max(1, history.get('total_ses
 """
 
         generation_config = genai.GenerationConfig(
-            temperature=0.4,
-            top_p=0.9,
-            max_output_tokens=1000,
+            temperature=0.7,
+            top_p=0.95,
+            max_output_tokens=1500,
             response_mime_type="application/json",
             response_schema=SessionPlan.model_json_schema(),
         )

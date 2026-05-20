@@ -97,9 +97,9 @@ Write the narrative text now. Remember: max 200 chars, dark fantasy tone, no exc
 Make it specific to the {theme} theme and the {player_class} class if relevant."""
 
         generation_config = genai.GenerationConfig(
-            temperature=0.9,
+            temperature=0.8,
             top_p=0.95,
-            max_output_tokens=150,
+            max_output_tokens=300,
             response_mime_type="application/json",
             response_schema=NarrativeResponse.model_json_schema(),
         )

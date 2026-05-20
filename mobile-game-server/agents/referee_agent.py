@@ -198,8 +198,8 @@ Output the ActionResult JSON now."""
 
         generation_config = genai.GenerationConfig(
             temperature=0.1,
-            top_p=0.8,
-            max_output_tokens=200,
+            top_p=0.9,
+            max_output_tokens=600,
             response_mime_type="application/json",
             response_schema=ActionResult.model_json_schema(),
         )

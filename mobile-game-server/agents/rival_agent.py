@@ -309,9 +309,9 @@ Choose the best action. Update updated_tactics to reflect what you observed.
 Keep reasoning under 80 characters — it shows in the game's live AI panel."""
 
         generation_config = genai.GenerationConfig(
-            temperature=0.3,
-            top_p=0.85,
-            max_output_tokens=300,
+            temperature=0.4,
+            top_p=0.9,
+            max_output_tokens=600,
             response_mime_type="application/json",
             response_schema=EnemyAction.model_json_schema(),
         )
