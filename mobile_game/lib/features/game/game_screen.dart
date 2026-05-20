@@ -159,10 +159,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
 
     if (event == GameEvent.playerMoved || event == GameEvent.playerAttacked) {
       try {
-        gameStateNotifier.setAiThinking(
-          true,
-          decision: "Validating action…",
-        );
+        gameStateNotifier.setAiThinking(true, decision: "Validating action…");
 
         final direction = data['direction'] as String;
         final action = <String, dynamic>{
@@ -222,20 +219,21 @@ class _GameScreenState extends ConsumerState<GameScreen>
               boardState: boardState,
               playerLastMoves: [direction],
             );
-            
+
             // Apply visual movement in Flame
             _dungeonGame?.applyEnemyAction(enemyAction);
-            
+
             // If enemy attacks, reduce player HP
-            if (enemyAction.actionType == 'attack' && enemyAction.damage != null) {
+            if (enemyAction.actionType == 'attack' &&
+                enemyAction.damage != null) {
               gameStateNotifier.applyEnemyDamage(enemyAction.damage!);
-              
+
               // Flash player component to show damage received
               _dungeonGame?.player.takeHit();
-              
+
               // Show floating damage number
               _showDamageNumber(enemyAction.damage!, isPlayerDamage: true);
-              
+
               // Check if player died
               final updatedState = ref.read(gameStateProvider);
               if ((updatedState.playerState?.hp ?? 1) <= 0) {
@@ -243,14 +241,14 @@ class _GameScreenState extends ConsumerState<GameScreen>
                 return;
               }
             }
-            
+
             // Update AI Decision Panel with what enemy did
             final reasoning = enemyAction.reasoning;
             gameStateNotifier.setAiThinking(
               false,
               decision: '${_getEnemyName(enemy["type"])} — $reasoning',
             );
-            
+
             await Future.delayed(const Duration(milliseconds: 300));
           } catch (e) {
             debugPrint('Enemy action error: $e');
@@ -259,7 +257,7 @@ class _GameScreenState extends ConsumerState<GameScreen>
 
         // After all enemies done, return to player turn
         gameStateNotifier.setTurnPhase(TurnPhase.playerTurn);
-        
+
         gameStateNotifier.setAiThinking(false);
       } catch (e) {
         gameStateNotifier.setAiThinking(false);
@@ -277,20 +275,29 @@ class _GameScreenState extends ConsumerState<GameScreen>
 
   String _getEnemyName(String? type) {
     switch (type) {
-      case 'goblin': return 'Goblin';
-      case 'forest_witch': return 'Forest Witch';
-      case 'shadow_mage': return 'Shadow Mage';
-      case 'book_golem': return 'Book Golem';
-      case 'fire_elemental': return 'Fire Elemental';
-      case 'rock_troll': return 'Rock Troll';
-      default: return type ?? 'Enemy';
+      case 'goblin':
+        return 'Goblin';
+      case 'forest_witch':
+        return 'Forest Witch';
+      case 'shadow_mage':
+        return 'Shadow Mage';
+      case 'book_golem':
+        return 'Book Golem';
+      case 'fire_elemental':
+        return 'Fire Elemental';
+      case 'rock_troll':
+        return 'Rock Troll';
+      default:
+        return type ?? 'Enemy';
     }
   }
 
   void _showDamageNumber(int damage, {bool isPlayerDamage = false}) {
     final key = UniqueKey();
-    final color = isPlayerDamage ? DungeonColors.crimsonLight : DungeonColors.gold;
-    
+    final color = isPlayerDamage
+        ? DungeonColors.crimsonLight
+        : DungeonColors.gold;
+
     setState(() {
       _floatingTexts.add(
         FloatingDamageNumber(
@@ -299,7 +306,8 @@ class _GameScreenState extends ConsumerState<GameScreen>
           color: color,
           isPlayerDamage: isPlayerDamage,
           onComplete: () {
-            if (mounted) setState(() => _floatingTexts.removeWhere((w) => w.key == key));
+            if (mounted)
+              setState(() => _floatingTexts.removeWhere((w) => w.key == key));
           },
         ),
       );
@@ -448,10 +456,15 @@ class _GameScreenState extends ConsumerState<GameScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('CONTINUE', style: TextStyle(color: DungeonColors.gold)),
+            child: const Text(
+              'CONTINUE',
+              style: TextStyle(color: DungeonColors.gold),
+            ),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: DungeonColors.crimson),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: DungeonColors.crimson,
+            ),
             onPressed: () {
               Navigator.pop(ctx);
               context.go('/menu');
@@ -472,12 +485,16 @@ class _GameScreenState extends ConsumerState<GameScreen>
           children: [
             Text(
               '✦ FLOOR CLEARED ✦',
-              style: DungeonText.displayLarge.copyWith(color: DungeonColors.gold),
+              style: DungeonText.displayLarge.copyWith(
+                color: DungeonColors.gold,
+              ),
             ),
             const SizedBox(height: 16),
             Text(
               'The dungeon shifts...',
-              style: DungeonText.bodyMedium.copyWith(fontStyle: FontStyle.italic),
+              style: DungeonText.bodyMedium.copyWith(
+                fontStyle: FontStyle.italic,
+              ),
             ),
           ],
         ),
@@ -512,77 +529,56 @@ class _GameScreenState extends ConsumerState<GameScreen>
       },
       child: Scaffold(
         backgroundColor: Colors.black,
-        body: Stack(
-          fit: StackFit.expand,
+        body: Column(
           children: [
-            // ═══ LAYER 0: FLAME GAME — fills entire screen ═══
+            // HUD at top — fixed height
             if (_dungeonGame != null)
-              RepaintBoundary(
-                child: SizedBox.expand(
-                  child: GameWidget(game: _dungeonGame!),
-                ),
-              )
-            else
-              _buildLoadingScreen(gameState),
-
-            // ═══ LAYER 1: HUD — pinned to top ═══
-            if (_dungeonGame != null)
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: SafeArea(
-                  bottom: false,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    child: HUDOverlay(
-                      currentHp: gameState.playerState?.hp ?? 100,
-                      maxHp: gameState.playerState?.maxHp ?? 100,
-                      floorNumber: gameState.currentLevel?.floorNumber ?? 1,
-                      turnCount: gameState.playerState?.turnCount ?? 0,
-                      onPauseTap: _showAbandonDialog,
-                    ),
-                  ),
+              SafeArea(
+                bottom: false,
+                child: HUDOverlay(
+                  currentHp: gameState.playerState?.hp ?? 100,
+                  maxHp: gameState.playerState?.maxHp ?? 100,
+                  floorNumber: gameState.currentLevel?.floorNumber ?? 1,
+                  turnCount: gameState.playerState?.turnCount ?? 0,
+                  onPauseTap: _showAbandonDialog,
                 ),
               ),
-
-            // ═══ LAYER 2: D-PAD — bottom right, above AI panel ═══
-            if (_dungeonGame != null)
-              Positioned(
-                bottom: 130,
-                right: 16,
-                child: DPadControls(
-                  onDirectionTap: (direction) {
-                    _dungeonGame?.handlePlayerMove(direction);
-                    ref.read(gameStateProvider.notifier).playerMove(direction);
-                  },
-                ),
-              ),
-
-            // ═══ LAYER 3: AI DECISION PANEL — anchored to bottom ═══
-            const Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: SizedBox(
-                height: 200,
-                child: AiDecisionPanel(),
+            // Game canvas — takes remaining space
+            Expanded(
+              child: Stack(
+                children: [
+                  if (_dungeonGame != null)
+                    GameWidget(game: _dungeonGame!)
+                  else
+                    _buildLoadingScreen(gameState),
+                  // Overlays on top of game only
+                  if (_showNarrativeOverlay)
+                    Positioned.fill(child: _buildNarrativeOverlay()),
+                  if (_showFloorCleared)
+                    Positioned.fill(child: _buildFloorClearedOverlay()),
+                  ..._floatingTexts,
+                ],
               ),
             ),
-
-            // ═══ LAYER 4: DAMAGE NUMBERS — overlay ═══
-            ..._floatingTexts,
-
-            // ═══ LAYER 5: NARRATIVE OVERLAY ═══
-            if (_showNarrativeOverlay)
-              Positioned.fill(child: _buildNarrativeOverlay()),
-
-            // ═══ LAYER 6: FLOOR CLEARED OVERLAY ═══
-            if (_showFloorCleared)
-              Positioned.fill(child: _buildFloorClearedOverlay()),
+            // D-pad and AI panel at bottom — always below game
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                const Spacer(),
+                Padding(
+                  padding: const EdgeInsets.only(right: 16, bottom: 8),
+                  child: DPadControls(
+                    onDirectionTap: (direction) {
+                      _dungeonGame?.handlePlayerMove(direction);
+                      ref
+                          .read(gameStateProvider.notifier)
+                          .playerMove(direction);
+                    },
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 180, child: const AiDecisionPanel()),
           ],
         ),
       ),
