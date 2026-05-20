@@ -122,6 +122,7 @@ class _PostGameScreenState extends ConsumerState<PostGameScreen>
           totalTurns: widget.args.totalTurns,
           sessionDurationSeconds: 120,
           aiDecisionsMade: 14,
+          displayName: player?.displayName ?? user.displayName ?? "Player",
         ),
       ]);
 
@@ -430,7 +431,7 @@ class _PostGameScreenState extends ConsumerState<PostGameScreen>
                       vertical: DungeonSpacing.md,
                     ),
                   ),
-                  child: const Text("VIEW AI DECISIONS"),
+                  child: const Text("AI DECISIONS"),
                 ),
               ),
             ),
@@ -461,7 +462,7 @@ class _PostGameScreenState extends ConsumerState<PostGameScreen>
                         vertical: DungeonSpacing.md,
                       ),
                     ),
-                    child: const Text("SHARE"),
+                    child: const Text("SHARE SCORE"),
                   ),
                 ),
               ),
@@ -494,6 +495,22 @@ class _PostGameScreenState extends ConsumerState<PostGameScreen>
                 ),
               ),
             ),
+          ),
+        ),
+        const SizedBox(height: DungeonSpacing.md),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            onPressed: () {
+              HapticFeedback.mediumImpact();
+              context.go('/menu');
+            },
+            style: OutlinedButton.styleFrom(
+              foregroundColor: DungeonColors.textPrimary,
+              side: const BorderSide(color: DungeonColors.goldDim),
+              padding: const EdgeInsets.symmetric(vertical: DungeonSpacing.md),
+            ),
+            child: const Text("BACK TO HOME"),
           ),
         ),
       ],

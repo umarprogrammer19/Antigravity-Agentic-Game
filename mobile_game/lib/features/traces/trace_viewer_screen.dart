@@ -358,20 +358,15 @@ class _TraceViewerScreenState extends State<TraceViewerScreen> {
               style: DungeonText.bodyMedium,
             ),
             const SizedBox(height: DungeonSpacing.xs),
-            Row(
+            Wrap(
+              spacing: DungeonSpacing.md,
+              runSpacing: DungeonSpacing.xs,
               children: [
-                Expanded(
-                  child: Text(
-                    "Total processing: ${totalTime}ms",
-                    style: DungeonText.caption,
-                  ),
+                Text(
+                  "Total processing: ${totalTime}ms",
+                  style: DungeonText.caption,
                 ),
-                Expanded(
-                  child: Text(
-                    "Tokens used: $totalTokens",
-                    style: DungeonText.caption,
-                  ),
-                ),
+                Text("Tokens used: $totalTokens", style: DungeonText.caption),
               ],
             ),
             const SizedBox(height: DungeonSpacing.md),

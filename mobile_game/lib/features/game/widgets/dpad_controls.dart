@@ -13,6 +13,7 @@ class DPadControls extends StatelessWidget {
   final double buttonSize;
   final double iconSize;
   final double centerSize;
+  final bool enabled;
 
   const DPadControls({
     super.key,
@@ -20,10 +21,12 @@ class DPadControls extends StatelessWidget {
     this.buttonSize = 56,
     this.iconSize = 28,
     this.centerSize = 48,
+    this.enabled = true,
   });
 
   void _onTap(String direction) {
     HapticFeedback.lightImpact();
+    if (!enabled) return;
     onDirectionTap(direction);
   }
 
@@ -38,6 +41,7 @@ class DPadControls extends StatelessWidget {
           label: "Move up",
           size: buttonSize,
           iconSize: iconSize,
+          enabled: enabled,
           onTap: () => _onTap('up'),
         ),
 
@@ -50,6 +54,7 @@ class DPadControls extends StatelessWidget {
               label: "Move left",
               size: buttonSize,
               iconSize: iconSize,
+              enabled: enabled,
               onTap: () => _onTap('left'),
             ),
 
@@ -77,6 +82,7 @@ class DPadControls extends StatelessWidget {
               label: "Move right",
               size: buttonSize,
               iconSize: iconSize,
+              enabled: enabled,
               onTap: () => _onTap('right'),
             ),
           ],
@@ -88,6 +94,7 @@ class DPadControls extends StatelessWidget {
           label: "Move down",
           size: buttonSize,
           iconSize: iconSize,
+          enabled: enabled,
           onTap: () => _onTap('down'),
         ),
       ],
@@ -101,6 +108,7 @@ class _DPadButton extends StatelessWidget {
   final String label;
   final double size;
   final double iconSize;
+  final bool enabled;
   final VoidCallback onTap;
 
   const _DPadButton({
@@ -108,6 +116,7 @@ class _DPadButton extends StatelessWidget {
     required this.label,
     required this.size,
     required this.iconSize,
+    required this.enabled,
     required this.onTap,
   });
 
@@ -119,7 +128,7 @@ class _DPadButton extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: onTap,
+          onTap: enabled ? onTap : null,
           borderRadius: BorderRadius.circular(size / 2),
           splashColor: DungeonColors.gold.withValues(alpha: 0.2),
           child: Container(
@@ -128,13 +137,21 @@ class _DPadButton extends StatelessWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: DungeonColors.surface.withValues(alpha: 0.7),
+              color: DungeonColors.surface.withValues(
+                alpha: enabled ? 0.7 : 0.35,
+              ),
               border: Border.all(
-                color: DungeonColors.goldDim.withValues(alpha: 0.5),
+                color: DungeonColors.goldDim.withValues(
+                  alpha: enabled ? 0.5 : 0.2,
+                ),
                 width: 1,
               ),
             ),
-            child: Icon(icon, color: DungeonColors.gold, size: iconSize),
+            child: Icon(
+              icon,
+              color: enabled ? DungeonColors.gold : DungeonColors.textDim,
+              size: iconSize,
+            ),
           ),
         ),
       ),

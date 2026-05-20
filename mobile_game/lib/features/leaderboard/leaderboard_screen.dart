@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
+import '../../services/agent_service.dart';
 
 import '../../widgets/empty_state_card.dart';
 import '../../widgets/error_card.dart';
@@ -17,6 +18,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   bool _isLoading = true;
   bool _hasError = false;
   List<Map<String, dynamic>> _entries = [];
+  final AgentService _agentService = AgentService();
 
   @override
   void initState() {
@@ -31,8 +33,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     });
 
     try {
-      // TODO: Replace with actual leaderboard API once available
-      await Future.delayed(const Duration(milliseconds: 800));
+      final entries = await _agentService.getLeaderboard();
       if (mounted) {
         setState(() {
           _entries = [
@@ -58,6 +59,19 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               "isCurrentPlayer": true,
             },
           ];
+          _entries = entries.asMap().entries.map((entry) {
+            final rank = entry.key + 1;
+            final value = entry.value;
+            final playerClass = value['class_used'] ?? value['player_class'];
+            final floors = value['floors_cleared'] ?? 0;
+            return {
+              "rank": rank,
+              "name": value['display_name'] ?? value['uid'] ?? 'Player',
+              "score": value['score'] ?? 0,
+              "subtitle": "${playerClass ?? 'unknown'} · $floors floors",
+              "isCurrentPlayer": false,
+            };
+          }).toList();
           _isLoading = false;
         });
       }

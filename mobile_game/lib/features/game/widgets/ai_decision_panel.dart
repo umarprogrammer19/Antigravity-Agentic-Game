@@ -11,16 +11,22 @@ import '../../../../providers/session_provider.dart';
 import '../../../../services/agent_service.dart';
 
 class AiDecisionPanel extends ConsumerStatefulWidget {
-  const AiDecisionPanel({super.key});
+  final bool expanded;
+  final VoidCallback? onToggleExpanded;
+
+  const AiDecisionPanel({
+    super.key,
+    this.expanded = false,
+    this.onToggleExpanded,
+  });
 
   @override
   ConsumerState<AiDecisionPanel> createState() => _AiDecisionPanelState();
 }
 
 class _AiDecisionPanelState extends ConsumerState<AiDecisionPanel> {
-  double _currentSize = 0.10;
   String? _selectedFilter;
-  ScrollController? _innerScrollController;
+  final ScrollController _innerScrollController = ScrollController();
 
   int _dotCount = 1;
   Timer? _timer;
@@ -72,13 +78,14 @@ class _AiDecisionPanelState extends ConsumerState<AiDecisionPanel> {
   void dispose() {
     _timer?.cancel();
     _pollTimer?.cancel();
+    _innerScrollController.dispose();
     super.dispose();
   }
 
   void _scrollToBottom() {
-    if (_innerScrollController != null && _innerScrollController!.hasClients) {
-      _innerScrollController!.animateTo(
-        _innerScrollController!.position.maxScrollExtent,
+    if (_innerScrollController.hasClients) {
+      _innerScrollController.animateTo(
+        _innerScrollController.position.maxScrollExtent,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOut,
       );
@@ -144,43 +151,26 @@ class _AiDecisionPanelState extends ConsumerState<AiDecisionPanel> {
       }
     });
 
-    final bool isExpanded = _currentSize > 0.60;
+    final bool isExpanded = widget.expanded;
     final backgroundColor = isThinking
         ? DungeonColors.surfaceElevated.withValues(alpha: 0.98)
         : DungeonColors.surfaceElevated.withValues(alpha: 0.90);
 
-    return NotificationListener<DraggableScrollableNotification>(
-      onNotification: (notification) {
-        setState(() {
-          _currentSize = notification.extent;
-        });
-        return false;
-      },
-      child: DraggableScrollableSheet(
-        initialChildSize: 0.42,
-        minChildSize: 0.42,
-        maxChildSize: 0.95,
-        builder: (context, scrollController) {
-          _innerScrollController = scrollController;
-
-          return Container(
-            decoration: BoxDecoration(
-              color: backgroundColor,
-              borderRadius: const BorderRadius.vertical(top: DungeonRadius.lg),
-              border: const Border(
-                top: BorderSide(color: DungeonColors.goldDim, width: 2),
-              ),
-            ),
-            child: isExpanded
-                ? _buildExpandedContent(gameState.sessionTraces)
-                : _buildCollapsedContent(
-                    isThinking,
-                    lastTrace,
-                    gameState.aiLastDecision,
-                  ),
-          );
-        },
+    return Container(
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: const BorderRadius.vertical(top: DungeonRadius.lg),
+        border: const Border(
+          top: BorderSide(color: DungeonColors.goldDim, width: 2),
+        ),
       ),
+      child: isExpanded
+          ? _buildExpandedContent(gameState.sessionTraces)
+          : _buildCollapsedContent(
+              isThinking,
+              lastTrace,
+              gameState.aiLastDecision,
+            ),
     );
   }
 
@@ -193,12 +183,19 @@ class _AiDecisionPanelState extends ConsumerState<AiDecisionPanel> {
       mainAxisSize: MainAxisSize.min,
       children: [
         const SizedBox(height: 8),
-        Container(
-          width: 32,
-          height: 4,
-          decoration: BoxDecoration(
-            color: Colors.grey[600],
-            borderRadius: BorderRadius.circular(2),
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.onToggleExpanded,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 80, vertical: 4),
+            child: Container(
+              width: 32,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[600],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 12),
@@ -267,12 +264,19 @@ class _AiDecisionPanelState extends ConsumerState<AiDecisionPanel> {
     return Column(
       children: [
         const SizedBox(height: 8),
-        Container(
-          width: 32,
-          height: 4,
-          decoration: BoxDecoration(
-            color: Colors.grey[600],
-            borderRadius: BorderRadius.circular(2),
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.onToggleExpanded,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 80, vertical: 4),
+            child: Container(
+              width: 32,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[600],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 12),
@@ -307,6 +311,14 @@ class _AiDecisionPanelState extends ConsumerState<AiDecisionPanel> {
                     ),
                   ),
                 ],
+              ),
+              IconButton(
+                tooltip: 'Collapse AI panel',
+                icon: const Icon(
+                  Icons.keyboard_arrow_down,
+                  color: DungeonColors.textSecondary,
+                ),
+                onPressed: widget.onToggleExpanded,
               ),
             ],
           ),

@@ -29,6 +29,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
   int playerMaxHp;
   int playerAttack;
   int playerDefense;
+  bool inputEnabled = true;
   final void Function(GameEvent, {dynamic data})? onGameEvent;
 
   late TileMapComponent tileMap;
@@ -49,7 +50,16 @@ class DungeonGame extends FlameGame with KeyboardEvents {
 
   Future<void> loadLevel(LevelSchema newLevel) async {
     levelSchema = newLevel;
-    removeAll([tileMap, player, ...enemies, hud]);
+
+    final toRemove = <Component>[];
+    if (tileMap.parent != null) toRemove.add(tileMap);
+    if (player.parent != null) toRemove.add(player);
+    for (final enemy in enemies) {
+      if (enemy.parent != null) toRemove.add(enemy);
+    }
+    if (hud.parent != null) toRemove.add(hud);
+
+    removeAll(toRemove);
     await _loadComponents();
   }
 
@@ -189,6 +199,8 @@ class DungeonGame extends FlameGame with KeyboardEvents {
   }
 
   void handlePlayerMove(String direction) {
+    if (!inputEnabled) return;
+
     final targetPos = gameController.getAdjacentPosition([
       player.gridRow,
       player.gridCol,
@@ -255,6 +267,7 @@ class DungeonGame extends FlameGame with KeyboardEvents {
   }
 
   void handleWait() {
+    if (!inputEnabled) return;
     onGameEvent?.call(GameEvent.playerWaited, data: {'direction': 'wait'});
   }
 }

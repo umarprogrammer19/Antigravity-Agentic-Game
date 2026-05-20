@@ -3,7 +3,7 @@ import uuid
 import google.generativeai as genai
 
 from agents.base_agent import BaseAgent
-from models.game_schemas import LevelSchema, validate_level_playable
+from models.game_schemas import ItemSpec, LevelSchema, validate_level_playable
 from exceptions import AgentValidationError
 from fallbacks.fallback_levels import FALLBACK_LEVELS
 from config import redis_client
@@ -128,6 +128,11 @@ SESSION CONTEXT:
 - Player class: {player_class}
 - Player current HP: {player_current_hp} (if low, consider adding a health_potion item)
 
+CLASS ADAPTATION:
+- warrior: favor melee enemies and wider corridors for close combat.
+- mage: avoid too many tank enemies, add sight lines, and include a health potion when possible.
+- ranger: favor alternate routes and mobile enemies over dead-end mazes.
+
 ENEMY STATS FOR THIS THEME AND DIFFICULTY:
 {self._get_enemy_stats_for_theme(theme, difficulty_level)}
 
@@ -145,17 +150,34 @@ narrative_hook should reference the {theme} atmosphere specifically."""
         data = f"{context.get('difficulty_level', 1)}-{context.get('theme', 'enchanted_forest')}-{context.get('player_class', 'warrior')}-{context.get('floor_number', 1)}"
         return hashlib.md5(data.encode()).hexdigest()
 
-    def _get_fallback_level(self, theme: str, floor_number: int) -> LevelSchema:
+    def _get_fallback_level(
+        self, theme: str, floor_number: int, player_class: str = "warrior"
+    ) -> LevelSchema:
         fallback = FALLBACK_LEVELS.get(theme, FALLBACK_LEVELS["enchanted_forest"])
         fallback_copy = fallback.model_copy(deep=True)
         fallback_copy.floor_number = floor_number
         fallback_copy.level_id = f"fallback_{uuid.uuid4().hex[:8]}"
+        fallback_copy.narrative_hook = (
+            f"{fallback_copy.narrative_hook} The layout shifts for a {player_class}."
+        )
+        if player_class == "mage":
+            fallback_copy.items = [
+                *fallback_copy.items,
+                ItemSpec(id="i_mage", type="health_potion", position=[5, 5]),
+            ]
+        elif player_class == "ranger":
+            fallback_copy.grid[4][2] = 1
+            fallback_copy.grid[6][4] = 1
+        elif player_class == "warrior":
+            for enemy in fallback_copy.enemies:
+                enemy.behavior = "rush_melee"
         return fallback_copy
 
     async def run(self, context: dict) -> LevelSchema:
         floor_number = context.get("floor_number", 1)
         difficulty_level = context.get("difficulty_level", 1)
         theme = context.get("theme", "enchanted_forest")
+        player_class = context.get("player_class", "warrior")
 
         # Step 8: Check Redis cache
         level_hash = self._get_level_hash(context)
@@ -253,7 +275,7 @@ narrative_hook should reference the {theme} atmosphere specifically."""
 
         except Exception as e:
             # Step 6: If retry fails -> return FALLBACK_LEVEL
-            level_obj = self._get_fallback_level(theme, floor_number)
+            level_obj = self._get_fallback_level(theme, floor_number, player_class)
             self.log_trace(
                 reasoning=f"AI generation failed ({str(e)}). Using fallback.",
                 tool_called="use_fallback",

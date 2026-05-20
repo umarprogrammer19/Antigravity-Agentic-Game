@@ -31,7 +31,7 @@ class AgentService {
   }
 
   final http.Client _client = http.Client();
-  final Duration _timeout = const Duration(seconds: 30);
+  final Duration _timeout = const Duration(seconds: 25);
 
   static List<String> get _candidateBaseUrls {
     const configured = String.fromEnvironment('DUNGEONMIND_API_URL');
@@ -270,6 +270,7 @@ class AgentService {
     required int totalTurns,
     required int sessionDurationSeconds,
     required int aiDecisionsMade,
+    String? displayName,
   }) async {
     final response = await _post(
       '/players/$playerId/session',
@@ -287,10 +288,18 @@ class AgentService {
         'total_turns': totalTurns,
         'session_duration_seconds': sessionDurationSeconds,
         'ai_decisions_made': aiDecisionsMade,
+        'display_name': displayName,
       },
       headers: {'X-Player-ID': playerId},
     );
 
     return jsonDecode(response.body);
+  }
+
+  Future<List<Map<String, dynamic>>> getLeaderboard({int limit = 20}) async {
+    final response = await _get('/leaderboard?limit=$limit');
+    final data = jsonDecode(response.body);
+    final entries = data['entries'] as List<dynamic>? ?? const [];
+    return entries.map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 }

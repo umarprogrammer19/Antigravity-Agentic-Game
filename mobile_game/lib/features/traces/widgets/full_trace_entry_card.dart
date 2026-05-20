@@ -78,14 +78,18 @@ class _FullTraceEntryCardState extends State<FullTraceEntryCard> {
                   ),
                 ),
                 const SizedBox(width: DungeonSpacing.sm),
-                Text(
-                  "$_agentAbbrev | ${widget.trace.agent}",
-                  style: DungeonText.headingMedium.copyWith(
-                    fontSize: 14,
-                    color: _agentColor,
+                Expanded(
+                  child: Text(
+                    "$_agentAbbrev | ${widget.trace.agent}",
+                    style: DungeonText.headingMedium.copyWith(
+                      fontSize: 14,
+                      color: _agentColor,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: DungeonSpacing.sm),
                 Text(
                   "Step ${widget.trace.step} · ${_formatTime(widget.trace.timestamp)}",
                   style: DungeonText.caption,
@@ -179,12 +183,14 @@ class _FullTraceEntryCardState extends State<FullTraceEntryCard> {
             const SizedBox(height: DungeonSpacing.md),
 
             // Footer (Model, Tokens, Duration)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            Wrap(
+              alignment: WrapAlignment.end,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 4,
               children: [
                 if (widget.trace.fallbackUsed)
                   Container(
-                    margin: const EdgeInsets.only(right: 8),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 6,
                       vertical: 2,
