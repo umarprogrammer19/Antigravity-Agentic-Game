@@ -1,82 +1,183 @@
 # 🏰 DungeonMind
 ### An AI-Powered Roguelike Dungeon Crawler
-**Google Antigravity Hackathon Submission**
+**Google Antigravity Hackathon Submission — Mobile App Alchemy: Agentic Game Quest**
 
 ---
 
-> *"This isn't a game with AI. This is AI that plays a game with you."*
+> *"Remove the AI agents and the game stops working. That's not AI as a feature — that's AI as the engine."*
 
 ---
 
 ## 🎮 What Is DungeonMind?
 
-DungeonMind is a turn-based roguelike dungeon crawler where **five specialized Gemini AI agents** serve as your personal Dungeon Master, enemy brain, storyteller, referee, and tactical coach — simultaneously.
+DungeonMind is a turn-based roguelike dungeon crawler where **five specialized Gemini AI agents serve as the living brain of the game** — running in real time during every session, every turn, and every decision.
 
-Every run is uniquely personalized:
-- **Struggling?** Your AI Dungeon Master quietly reduces difficulty without telling you
-- **Dominating?** Enemies get smarter, faster, and more aggressive
-- **Dying to ranged attacks?** Your NPC opponent learns your tactics and adapts
-- **Every decision the AI makes is shown to you in real time** — through the live AI Decision Panel
+This is not AI as a decoration. Every player action triggers at least one Gemini agent call. Every dungeon is generated fresh by AI. Every enemy decision is made by AI. Every story beat is written by AI. Every session is personalized by AI before you take your first step.
+
+- **Struggling?** Your AI Dungeon Master quietly reduces difficulty, switches themes, and increases item drops — without telling you
+- **Dominating?** Enemies get smarter after 3 turns by reading your pattern and switching tactics
+- **Every run is unique** — procedurally generated floors, AI-adapted difficulty, AI-written narrative
+- **Every AI decision is visible** — the live AI Decision Panel shows agent reasoning in real time
 
 ---
 
-## 🤖 The Five AI Agents
+## 🤖 Five Agents. All Runtime. All Live.
 
-| Agent | Role | Model | Called When |
-|-------|------|-------|-------------|
-| **DungeonMasterAgent** | Analyzes player history, creates personalized session | Gemini Flash Thinking | Once per session start |
-| **LevelGeneratorAgent** | Procedurally generates dungeon floors as JSON | Gemini Flash | Once per floor |
-| **RivalAgent** | Controls enemy AI, adapts to player tactics | Gemini Flash | Every enemy turn |
-| **NarrativeAgent** | Generates story text for key game events | Gemini Flash | Story events |
-| **RefereeAgent** | Validates actions, computes combat, grants rewards | Pure Python + Gemini (edge cases) | Every player action |
+These agents do not run during development. They run **during your gameplay session**, on every turn, reacting to your actions in real time.
+
+| Agent | Runtime Role | Model | Triggered By |
+|-------|-------------|-------|-------------|
+| **DungeonMasterAgent** | Reads full player history, computes engagement level, personalizes session difficulty, theme, enemy speed, item drop rate | Gemini 2.5 Flash | Player taps NEW RUN |
+| **LevelGeneratorAgent** | Generates a unique dungeon floor as a validated JSON grid — enemies, items, layout, exit path | Gemini 2.5 Flash | Each floor start |
+| **RivalAgent** | Controls each enemy's turn. After 3 moves, reads player tactics and overrides base behavior to counter them | Gemini 2.5 Flash | Every enemy turn |
+| **NarrativeAgent** | Writes 1-2 sentence dark fantasy story text for floor clears, deaths, items, boss encounters | Gemini 2.5 Flash | Key game events |
+| **RefereeAgent** | Validates every player action, computes combat damage, grants XP rewards, enforces rules | Pure Python + Gemini (edge cases) | Every player action |
+
+### Why This Matters
+If you shut down the AI backend, the game shows a loading screen and never starts. The dungeon does not exist without LevelGeneratorAgent. The session plan does not exist without DungeonMasterAgent. Enemy turns do not resolve without RivalAgent. **The AI is not a feature. It is the game.**
+
+---
+
+## 🔄 The Agentic Gameplay Loop
+
+```
+Player taps NEW RUN
+        ↓
+DungeonMasterAgent reads player history
+→ Computes loss_rate, engagement category, avg_floors_cleared
+→ Sets: difficulty, theme, enemy_speed, item_drop_rate, boss_difficulty
+→ Writes: personalized narrative_intro
+        ↓
+LevelGeneratorAgent generates Floor 1
+→ Creates 10×10 to 15×15 validated grid
+→ Places enemies, items, exit — checks path exists
+→ Returns: LevelSchema JSON
+        ↓
+Player enters dungeon
+        ↓
+[Every Player Turn]
+Player moves/attacks
+        ↓
+RefereeAgent validates action
+→ Checks rules, computes damage, grants XP, detects floor clear
+        ↓
+[Every Enemy Turn — per enemy]
+RivalAgent reads player_tactics_profile from Redis
+→ After turn 3: overrides base behavior based on observed patterns
+→ Decides: move / attack / ability / wait
+        ↓
+[Key Events]
+NarrativeAgent generates atmospheric text
+→ Specific to theme, class, floor, event type
+        ↓
+Floor 5 cleared → Session Win
+Player HP = 0  → Session Loss + DungeonMaster feedback + difficulty adjustment
+```
+
+---
+
+## 📊 Engagement Tracking & Adaptive Difficulty
+
+The DungeonMasterAgent is the engagement tracking system. Before every session it computes:
+
+```python
+loss_rate = losses / max(1, total_sessions)
+
+# Engagement categories:
+loss_rate > 70%  → "struggling"   → difficulty 1-4,  speed 0.8x, items 1.5x
+loss_rate 50-70% → "below avg"   → difficulty 3-6,  speed 1.0x, items 1.0x
+loss_rate 30-50% → "average"     → difficulty 5-7,  speed 1.0x, items 1.0x
+loss_rate < 30%  → "excelling"   → difficulty 7-10, speed 1.3x, items 0.8x
+```
+
+This runs on every session start — the game adapts to the player's engagement history, not a static difficulty slider. The player never sees a "difficulty" setting. They just feel the game getting easier or harder.
+
+---
+
+## ⚔️ Baseline Comparison
+
+DungeonMind includes a non-agentic baseline mode for evaluation purposes.
+
+| Capability | Agentic Mode (AI On) | Baseline Mode (AI Off) |
+|-----------|---------------------|----------------------|
+| Session planning | DungeonMasterAgent reads history, computes difficulty | Hardcoded: difficulty=3, enchanted_forest |
+| Level generation | LevelGeneratorAgent creates unique grid | Pre-built fallback levels from `fallbacks/fallback_levels.py` |
+| Enemy AI | RivalAgent adapts to player tactics after 3 turns | Base behavior only: rush_melee, tank_melee, etc. |
+| Narrative | NarrativeAgent writes theme-specific story | Static hardcoded strings from `NARRATIVE_FALLBACKS` |
+| Action validation | RefereeAgent with Gemini edge case handling | Pure Python rule validation only |
+| Difficulty adaptation | Recomputed every session based on history | Never changes |
+
+The fallback system already exists in the codebase (`fallback_used: true` in traces). Baseline mode is what happens when the AI backend is unavailable — the game is playable but static, repetitive, and unadaptive.
+
+To toggle baseline mode: set `BASELINE_MODE=true` in `.env`. All agent calls return their hardcoded fallback immediately.
 
 ---
 
 ## 🏗️ Architecture
 
 ```
-Flutter App (mobile-game/)
-    │
-    │ HTTP REST
-    ▼
-FastAPI Backend (mobile-game-server/)
-    │
-    ├── AI Agents ──────────────▶ Gemini API
-    ├── Firebase Admin ──────────▶ Firestore + Realtime DB
-    └── Redis ───────────────────▶ Session cache + agent memory
+┌─────────────────────────────────────────────────────────┐
+│                  Flutter Mobile App                      │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────┐  │
+│  │GameScreen│ │AI Panel  │ │TraceView │ │PostGame   │  │
+│  │(Flame)   │ │(Live)    │ │(Judges)  │ │(Feedback) │  │
+│  └────┬─────┘ └──────────┘ └──────────┘ └───────────┘  │
+└───────┼─────────────────────────────────────────────────┘
+        │ HTTP REST (async, timeout + fallback)
+        ▼
+┌─────────────────────────────────────────────────────────┐
+│              FastAPI Backend (Python)                    │
+│                                                         │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │              5 Runtime AI Agents                │   │
+│  │                                                 │   │
+│  │  DungeonMaster → LevelGenerator → Rival         │   │
+│  │       ↕               ↕            ↕            │   │
+│  │  Narrative  ←→  Referee  ←→  BaseAgent          │   │
+│  └────────────────────┬────────────────────────────┘   │
+│                       │                                  │
+│  ┌──────────────┐     │     ┌──────────────────────┐   │
+│  │ Redis Cache  │◄────┤────►│   Gemini 2.5 Flash   │   │
+│  │ (agent mem)  │     │     │   (runtime AI calls) │   │
+│  └──────────────┘     │     └──────────────────────┘   │
+│                       │                                  │
+│  ┌────────────────────▼─────────────────────────────┐  │
+│  │              Firebase                             │  │
+│  │  Firestore (sessions, traces, leaderboard)       │  │
+│  │  Realtime DB (live AI status → AI panel)         │  │
+│  └──────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────┘
 ```
 
 ### Tech Stack
 
-**Mobile:** Flutter 3.x + Flame game engine + Riverpod state management  
-**Backend:** Python FastAPI + uvicorn  
-**AI:** Google Gemini 2.0 Flash (+ Flash Thinking for DungeonMaster)  
-**Database:** Firebase Firestore + Firebase Realtime DB  
-**Cache:** Redis (agent working memory, level cache)  
-**IDE:** Google Antigravity (agent-first development throughout)
+| Layer | Technology |
+|-------|-----------|
+| Mobile App | Flutter 3.x + Flame game engine + Riverpod |
+| Backend | Python FastAPI + uvicorn |
+| Runtime AI | Google Gemini 2.5 Flash |
+| Development Environment | Google Antigravity |
+| Database | Firebase Firestore + Realtime Database |
+| Agent Memory | Redis (tactics profile, session cache, rate limiting) |
+| Navigation | GoRouter |
+| State Management | Riverpod |
 
 ---
 
-## 🔧 How Antigravity Was Used
+## 🔧 How Google Antigravity Was Used
 
-This project was built **entirely inside Google Antigravity** as the primary development environment.
+### As the Development Environment
+The entire project was built inside Google Antigravity using specialized agents:
 
-### Development Phase (Antigravity as IDE)
-- **Architecture Agent:** Generated complete project structure from specs
-- **Backend Architect Agent:** Scaffolded all FastAPI routes and Pydantic models
-- **Flutter Agent:** Built all screens, navigation, and Flame integration
-- **AI Systems Agent:** Implemented all 5 game agents with Gemini integration
-- **Debugger Agent:** Resolved integration issues and edge cases
+- **Backend Architect Agent** — Scaffolded all FastAPI routes, Pydantic models, Firebase service
+- **Flutter Architect Agent** — Built all screens, Flame integration, navigation, state management
+- **AI Systems Engineer Agent** — Implemented all 5 game agents, prompts, trace logging
+- **Debugger Agent** — Resolved integration issues, edge cases, validation errors
 
-### Runtime Phase (Gemini as Game AI)
-Antigravity's Gemini model powers the 5 in-game agents at runtime.
+All Antigravity session artifacts are saved in `docs/ANTIGRAVITY_TRACES/`.
 
-### Artifacts Submitted
-See `docs/ANTIGRAVITY_TRACES/` for:
-- Architecture planning session artifacts
-- Backend implementation artifacts
-- Agent system development artifacts
-- Integration and debugging artifacts
+### As the Runtime AI Foundation
+Google's Gemini model (accessed via Antigravity's AI infrastructure) powers all 5 agents at runtime. Every session, every turn, every decision routes through Gemini. The agents are not wrappers — they maintain state in Redis, share player tactics profiles across turns, retry on validation failure, and fall back gracefully so the game never crashes.
 
 ---
 
@@ -88,35 +189,35 @@ antigravity-game/
 │   ├── lib/
 │   │   ├── main.dart
 │   │   ├── app/
-│   │   │   ├── router.dart         # GoRouter navigation
-│   │   │   └── theme.dart          # Dark dungeon design system
+│   │   │   ├── router.dart
+│   │   │   └── theme.dart
 │   │   ├── features/
-│   │   │   ├── auth/               # Firebase auth
-│   │   │   ├── menu/               # Main menu
-│   │   │   ├── character_select/   # Class selection
-│   │   │   ├── game/               # Flame game + HUD + AI panel
-│   │   │   ├── traces/             # AI decision viewer
-│   │   │   └── leaderboard/        # Global rankings
+│   │   │   ├── auth/
+│   │   │   ├── menu/
+│   │   │   ├── character_select/
+│   │   │   ├── game/               # Flame engine + HUD + AI panel
+│   │   │   ├── traces/             # Trace viewer (judge evaluation)
+│   │   │   └── leaderboard/
+│   │   ├── models/
+│   │   ├── providers/              # Riverpod state
 │   │   └── services/
-│   │       ├── agent_service.dart  # Backend API calls
-│   │       └── firebase_service.dart
 │   └── pubspec.yaml
 │
 ├── mobile-game-server/             # Python backend
-│   ├── main.py                     # FastAPI app
+│   ├── main.py
 │   ├── agents/
-│   │   ├── base_agent.py           # BaseAgent with tracing
-│   │   ├── dungeon_master.py       # Session planner
-│   │   ├── level_generator.py      # Dungeon architect
-│   │   ├── rival_agent.py          # NPC brain
-│   │   ├── narrative_agent.py      # Storyteller
-│   │   └── referee_agent.py        # Rule enforcer
-│   ├── routers/                    # FastAPI routes
-│   ├── models/                     # Pydantic schemas
-│   ├── services/                   # Firebase + Redis
-│   └── fallbacks/                  # Hardcoded safety nets
+│   │   ├── base_agent.py           # Tracing, Gemini client, fallback logic
+│   │   ├── dungeon_master.py       # Session planner + engagement tracker
+│   │   ├── level_generator.py      # Procedural dungeon architect
+│   │   ├── rival_agent.py          # Adaptive enemy brain
+│   │   ├── narrative_agent.py      # Dark fantasy storyteller
+│   │   └── referee_agent.py        # Rule enforcer + reward granter
+│   ├── routers/
+│   ├── models/
+│   ├── services/
+│   └── fallbacks/                  # Baseline mode + safety nets
 │
-└── docs/                           # All specification documents
+└── docs/
     ├── PRD.md
     ├── ARCHITECTURE.md
     ├── GAMEPLAY_LOOP.md
@@ -127,7 +228,7 @@ antigravity-game/
     ├── JSON_SCHEMAS.md
     ├── UI_SPECS.md
     ├── TRACE_FORMAT.md
-    └── ANTIGRAVITY_TRACES/
+    └── ANTIGRAVITY_TRACES/         # Exported build session artifacts
 ```
 
 ---
@@ -136,69 +237,53 @@ antigravity-game/
 
 ### Prerequisites
 ```
-Flutter 3.x (flutter --version)
-Python 3.12+ (python --version)
-uv package manager (uv --version)
-Redis (redis-server)
-Firebase project (Firebase Console)
+Flutter 3.x
+Python 3.12+
+uv package manager
+Redis
+Firebase project
 Gemini API key (Google AI Studio)
-Google Antigravity (antigravity.google)
 ```
 
 ### Backend Setup
 ```bash
 cd mobile-game-server
-
-# Install dependencies with uv
 uv sync
 
-# Create .env file
+# Create .env
 cp .env.example .env
 # Fill in: GEMINI_API_KEY, FIREBASE_CREDENTIALS_PATH, REDIS_URL
+# Optional: BASELINE_MODE=true  (disables AI, uses fallbacks only)
 
-# Add Firebase service account
-# Download serviceAccountKey.json from Firebase Console
-# Place in mobile-game-server/serviceAccountKey.json
+# Add Firebase service account JSON
+# Place serviceAccountKey.json in mobile-game-server/
 
-# Start Redis
 redis-server
-
-# Run backend
 uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 # Verify: http://localhost:8000/docs
+# Health: http://localhost:8000/health
 ```
 
 ### Flutter Setup
 ```bash
 cd mobile-game
-
-# Install dependencies
 flutter pub get
+# Run: flutterfire configure OR add google-services.json manually
+# Set backend URL in lib/config/env.dart
 
-# Create Firebase config
-# Run: flutterfire configure
-# OR manually add google-services.json (Android) and GoogleService-Info.plist (iOS)
-
-# Create env config
-# lib/config/env.dart — set backendBaseUrl
-
-# Run on Android emulator
 flutter run
-
-# Run on physical device
-flutter run --release
 ```
 
 ### Environment Variables
 ```env
-# mobile-game-server/.env
-GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_API_KEY=your_key_here
 FIREBASE_CREDENTIALS_PATH=serviceAccountKey.json
 FIREBASE_DATABASE_URL=https://your-project-default-rtdb.firebaseio.com
 REDIS_URL=redis://localhost:6379
 APP_ENV=development
 LOG_LEVEL=INFO
+BASELINE_MODE=false
 ```
 
 ---
@@ -206,78 +291,62 @@ LOG_LEVEL=INFO
 ## 🎯 How to Play
 
 1. **Sign In** — Google or anonymous
-2. **Choose Your Class** — Warrior (melee), Mage (ranged), Ranger (balanced)
-3. **Wait for Your Dungeon Master** — AI analyzes your history and prepares a personalized run
-4. **Explore the Dungeon** — Move with arrow keys/d-pad, move into enemies to attack
-5. **Watch the AI Panel** — See every AI decision in real time at the bottom of the screen
-6. **Reach the Exit** — Step on the green tile to clear each floor
-7. **Survive 5 Floors** — Clear all 5 to win the session
-8. **Review AI Decisions** — After each run, see every decision your Dungeon Master made
-
-### Controls
-```
-Arrow Keys / WASD     → Move player
-Move into enemy       → Attack
-[MENU button]         → Pause / abandon run
-[Drag AI panel up]    → Expand AI decision log
-```
+2. **Choose Class** — Warrior (melee tank), Mage (ranged glass cannon), Ranger (balanced)
+3. **Watch the DM Think** — AI analyzes your history and personalizes your run
+4. **Explore** — D-pad to move. Move into enemies to attack.
+5. **Watch the AI Panel** — See every agent decision happening in real time
+6. **Reach the Exit** — Green tile clears the floor
+7. **Survive 5 Floors** — Floor 5 has a boss. Clear it to win.
+8. **Review AI Traces** — After the run, see every decision the agents made
 
 ---
 
-## 📊 Agent Trace Example
+## 🔍 Live AI Decision Panel — The Key Demo Feature
 
-Here's a real example of the DungeonMaster Agent making decisions for a struggling player:
+During gameplay, a draggable panel at the bottom of the screen shows every agent decision as it happens:
 
 ```
-SESSION START — Player: warrior, 10 sessions, 2 wins, 8 losses
+🧠 Rival: Shadow Mage switched to ranged — detected melee preference (3 turns)
+🧠 DM: loss_rate = 0.80 → difficulty 3, enchanted_forest, items ×1.5
+🧠 Level: 10×10 grid generated — path valid — difficulty score 3.2/10
+🧠 Referee: move validated — floor tile confirmed — no enemy collision
+🧠 Narrative: floor_cleared event — "The shadows retreat. Floor 2 waits."
+```
 
-[DungeonMasterAgent - Step 1 - 10:32:01]
-REASONING: "Reading player history. 8 losses, 2 wins across 10 sessions."
-TOOL: read_player_history
-DECISION: "History loaded. Computing performance category."
+Collapsed: 1-line summary of last agent decision.
+Expanded (drag up): Full reasoning log with tool inputs/outputs, timestamps, token counts.
 
-[DungeonMasterAgent - Step 2 - 10:32:02]  
-REASONING: "loss_rate = 8/10 = 0.80. Exceeds 70% threshold → 'struggling' category.
-            Decision matrix requires difficulty 1-4. avg_floors_cleared=2.3, so difficulty 3."
-TOOL: compute_difficulty_params  
-DECISION: "difficulty=3, enemy_speed=0.8x, item_drop=1.5x. Target: 3-4 floors cleared."
+---
 
-[DungeonMasterAgent - Step 3 - 10:32:02]
-REASONING: "Theme history: cursed_library 3 losses, volcanic_caves 2 losses, 
-            enchanted_forest 1 win. Struggling players → easiest theme."
+## 📈 Agent Trace Example (Real Output)
+
+```
+SESSION START — warrior, 10 sessions, 2 wins, 8 losses
+
+[DungeonMasterAgent — Step 1 — 10:32:01]
+REASONING: "8 losses, 2 wins. loss_rate = 8/10 = 0.80."
+TOOL: compute_player_stats
+DECISION: "Struggling category. Applying easy mode parameters."
+
+[DungeonMasterAgent — Step 2 — 10:32:02]
+REASONING: "loss_rate 0.80 exceeds 70% threshold → difficulty 1-4.
+             avg_floors_cleared=2.3 → difficulty set to 3.
+             enemy_speed=0.8x, item_drop=1.5x."
+TOOL: set_difficulty_params
+DECISION: "difficulty=3, enchanted_forest, items×1.5"
+
+[DungeonMasterAgent — Step 3 — 10:32:02]
+REASONING: "3 consecutive losses. Easiest theme selected."
 TOOL: select_theme
-DECISION: "Theme: enchanted_forest. Widest corridors, lowest enemy aggression."
+DECISION: "Theme: enchanted_forest"
 
-[LevelGeneratorAgent - Step 1 - 10:32:04]
+[LevelGeneratorAgent — Step 1 — 10:32:04]
 REASONING: "Floor 1, difficulty 3 → 10×10 grid, 3 enemies, 2 items."
-TOOL: analyze_level_params → generate_grid → place_entities → validate_level
-DECISION: "Level generated. Path valid. Difficulty score: 3.2/10. Est. 20 turns."
+TOOL: generate_grid → validate_path
+DECISION: "Level valid. Path confirmed. difficulty_score=3.2"
 
-[Total: 7 AI decisions made before player takes a single step]
+[Total: 7 AI decisions before player takes a single step]
 ```
-
----
-
-## 🔍 Key Features for Judges
-
-### 1. Live AI Decision Panel
-During gameplay, a draggable panel at the bottom shows every AI agent decision in real time:
-- Which agent made the decision
-- The exact reasoning (with data)
-- What was decided
-- Processing time
-
-### 2. Session Trace Viewer
-After every run, players can review all AI decisions made during the session — formatted as a beautiful log showing the complete "thought process" of the dungeon.
-
-### 3. Adaptive Difficulty (Invisible to Player)
-The DungeonMaster silently adjusts difficulty between sessions based on player history. Players feel the game getting easier or harder — they don't see a "difficulty slider" change.
-
-### 4. NPC Learning
-After 3 turns, the RivalAgent reads the player's move patterns and overrides enemy base behavior to counter the player's tactics. A player who always rushes melee will find enemies using ranged attacks.
-
-### 5. Every Run is Different
-LevelGeneratorAgent creates a new dungeon layout every time. Same difficulty, different grid, different enemy placement, different items.
 
 ---
 
@@ -285,40 +354,25 @@ LevelGeneratorAgent creates a new dungeon layout every time. Same difficulty, di
 
 | Criterion | Weight | Our Implementation |
 |-----------|--------|--------------------|
-| Antigravity Execution | 30% | Full development in Antigravity; exported artifacts in docs/ |
-| Gameplay Engagement | 25% | Polished roguelike core loop; adaptive difficulty |
-| Agentic Innovation | 20% | 5 specialized agents; NPC tactic learning; live trace panel |
-| Technical Polish | 15% | Stable Flutter app; <1s NPC decisions; zero game-breaking bugs |
-| Concept & Originality | 10% | "AI as Dungeon Master" framing; real-time reasoning visibility |
+| **Antigravity Integration** | 25% | 5 Gemini agents run at runtime on every turn. Built entirely in Antigravity. Exported traces in docs/. |
+| **Gameplay Engagement** | 25% | DungeonMaster tracks engagement per session. Difficulty adapts invisibly. NPC learning after turn 3. Live AI panel keeps players watching. |
+| **Agentic Innovation** | 20% | Cross-agent Redis memory sharing. Player tactics profile updated per turn. Agents retry, fall back, and log everything. |
+| **Technical Polish** | 15% | <1s NPC decisions. Never returns 500. All async with loading states. Pydantic schema validation on all AI outputs. |
+| **Creativity** | 10% | AI as Dungeon Master framing. Real-time reasoning visibility. Dark fantasy narrative generated per event. |
+| **Baseline Comparison** | 5% | `BASELINE_MODE=true` disables all agents, uses fallback_levels and hardcoded behavior. Measurable difference in adaptivity. |
 
 ---
 
 ## 📝 Assumptions & Limitations
 
-- All enemy/player art uses colored rectangles (no image assets) — chosen intentionally for performance
-- Multiplayer is not implemented — single-player only
+- All game art uses colored rectangles — chosen intentionally for hackathon speed
+- Multiplayer not implemented — single-player only
 - NPC tactic learning requires 3+ turns of data — first 3 turns use base behavior
-- Gemini API latency: 1-3 seconds for level generation (shown as intentional "dungeon shifting" animation)
-- Redis is required locally — cloud Redis for production deployment
-- Demo uses pre-seeded player account with 10 losses for optimal AI adaptation demonstration
+- Gemini latency: 1-3s for level generation — shown as "dungeon shifting" animation
+- Redis required locally — cloud Redis for production
+- Demo uses pre-seeded account (10 losses, 0 wins) for optimal DM adaptation demo
 
 ---
 
-## 🛠️ Built With Google Antigravity
-
-```
-Development Environment: Google Antigravity (agent-first IDE)
-AI Model: Gemini 2.0 Flash + Gemini 2.0 Flash Thinking
-Backend: Python FastAPI (uv package manager)
-Mobile: Flutter + Flame game engine
-Database: Firebase (Firestore + Realtime DB)
-Cache: Redis
-State Management: Riverpod
-Navigation: GoRouter
-Agent Framework: LangChain + Google Generative AI SDK
-```
-
----
-
-*DungeonMind — Where the AI thinks so the dungeon breathes.*  
-*Built solo using Google Antigravity | Google Antigravity Hackathon 2026*
+*DungeonMind — Where the AI thinks so the dungeon breathes.*
+*Built with Google Antigravity | Google Antigravity Hackathon 2026*
