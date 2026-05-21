@@ -109,8 +109,19 @@ class FirebaseService:
                 if won:
                     updates[f"wins_by_theme.{theme}"] = firestore.Increment(1)
 
+            # Import logger at the top of this block
+            from config import logger
+
             # Check if doc exists to update or set
             doc_snap = stats_ref.get()
+            current_high_score = 0
+            if doc_snap.exists:
+                # Convert to dict first to safely get high_score field
+                existing_data = doc_snap.to_dict() or {}
+                current_high_score = existing_data.get("high_score", 0)
+
+            session_score = session_data.get("score", 0)
+
             if not doc_snap.exists:
                 # Need to set initial
                 init_data = {
@@ -120,12 +131,23 @@ class FirebaseService:
                     "total_floors_cleared": session_data.get("floors_cleared", 0),
                     "total_enemies_killed": session_data.get("enemies_killed", 0),
                     "avg_floors_cleared": float(session_data.get("floors_cleared", 0)),
+                    "high_score": session_score,  # Set initial high score
                     "last_updated": firestore.SERVER_TIMESTAMP,
                     "sessions_by_theme": {theme: 1} if theme else {},
                     "wins_by_theme": {theme: won} if theme else {}
                 }
                 stats_ref.set(init_data)
+                logger.info(f"📊 Created new stats for {uid}: Score={session_score}")
             else:
+                # Update high score if this session's score is higher
+                if session_score > current_high_score:
+                    updates["high_score"] = session_score
+                    logger.info(f"🏆 NEW HIGH SCORE for {uid}: {session_score} (previous: {current_high_score})")
+                elif current_high_score == 0 and session_score > 0:
+                    # Field doesn't exist yet, add it
+                    updates["high_score"] = session_score
+                    logger.info(f"🏆 First high score for {uid}: {session_score}")
+
                 stats_ref.update(updates)
 
                 # Recalculate avg_floors_cleared after update

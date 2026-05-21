@@ -15,9 +15,32 @@ class TileMapComponent extends Component {
     int gridRows,
     int gridCols,
   ) {
-    final double maxTileW = (screenWidth - 16) / gridCols;
-    final double maxTileH = (screenHeight - 16) / gridRows;
-    tileSize = (maxTileW < maxTileH ? maxTileW : maxTileH).clamp(24.0, 40.0);
+    // Account for UI elements: top bar, bottom controls, padding
+    // Use more aggressive padding to ensure grid fits
+    final double maxTileW = (screenWidth - 40) / gridCols;
+    final double maxTileH = (screenHeight - 250) / gridRows;  // Even more space for UI
+
+    // Calculate size based on smallest dimension
+    final double calculatedSize = maxTileW < maxTileH ? maxTileW : maxTileH;
+
+    // Dynamic clamp based on grid size - more aggressive for larger grids
+    final double minTileSize = gridRows > 12 ? 14.0 : 16.0;
+    final double maxTileSize;
+
+    if (gridRows >= 15) {
+      maxTileSize = 22.0;  // 15x15 grids: very small tiles
+    } else if (gridRows >= 12) {
+      maxTileSize = 26.0;  // 12x12 grids: small tiles
+    } else if (gridRows >= 10) {
+      maxTileSize = 30.0;  // 10x10 grids: medium tiles
+    } else {
+      maxTileSize = 38.0;  // 8x8 grids: larger tiles
+    }
+
+    tileSize = calculatedSize.clamp(minTileSize, maxTileSize);
+
+    // Debug print to verify tile size
+    print('📐 Grid: ${gridRows}x$gridCols, Tile size: ${tileSize.toStringAsFixed(1)}px');
   }
 
   @override
