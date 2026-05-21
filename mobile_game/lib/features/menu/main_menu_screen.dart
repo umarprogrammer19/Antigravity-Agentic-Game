@@ -239,6 +239,9 @@ class _PlayerStatsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Debug: Print what values are being rendered
+    print('🎨 UI RENDERING: wins=${player.wins}, losses=${player.losses}, highScore=${player.highScore}');
+
     return Container(
       padding: const EdgeInsets.all(DungeonSpacing.md),
       decoration: BoxDecoration(

@@ -215,6 +215,16 @@ def validate_level_playable(level: LevelSchema) -> tuple[bool, str]:
     start = tuple(level.player_start)
     exit_pos = tuple(level.exit_position)
 
+    # Basic validation first
+    if not (0 <= start[0] < level.grid_rows and 0 <= start[1] < level.grid_cols):
+        return False, f"player_start {start} out of bounds"
+    if not (0 <= exit_pos[0] < level.grid_rows and 0 <= exit_pos[1] < level.grid_cols):
+        return False, f"exit_position {exit_pos} out of bounds"
+    if grid[start[0]][start[1]] == 0:
+        return False, f"player_start {start} is on a wall tile"
+    if grid[exit_pos[0]][exit_pos[1]] == 0:
+        return False, f"exit_position {exit_pos} is on a wall tile"
+
     visited = {start}
     queue = deque([start])
 

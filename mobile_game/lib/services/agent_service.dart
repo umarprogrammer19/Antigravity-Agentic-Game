@@ -128,6 +128,19 @@ class AgentService {
     } catch (e) {
       stopwatch.stop();
       debugPrint('GET $url - ERROR - ${stopwatch.elapsedMilliseconds}ms: $e');
+
+      // If we get a timeout and haven't found a working URL yet, try health check
+      if (_runtimeBaseUrl == null && e.toString().contains('TimeoutException')) {
+        debugPrint('⚠️ Connection timeout - attempting to find working backend URL...');
+        try {
+          await checkHealth();
+          // Retry with the new URL
+          return await _get(endpoint, headers: headers);
+        } catch (healthError) {
+          debugPrint('❌ Health check failed: $healthError');
+        }
+      }
+
       throw AgentException('Request failed: $e');
     }
   }
@@ -306,10 +319,13 @@ class AgentService {
   }
 
   Future<Map<String, dynamic>> getPlayerHistory({required String playerId}) async {
+    debugPrint('🔍 AgentService: Fetching history for player: $playerId');
     final response = await _get(
       '/players/$playerId/history',
       headers: {'X-Player-ID': playerId},
     );
-    return jsonDecode(response.body);
+    final data = jsonDecode(response.body);
+    debugPrint('🔍 AgentService: History response: $data');
+    return data;
   }
 }

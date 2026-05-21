@@ -46,14 +46,24 @@ class PlayerNotifier extends AsyncNotifier<PlayerModel> {
     try {
       final agentService = AgentService();
       final history = await agentService.getPlayerHistory(playerId: user.uid);
-      
-      return PlayerModel(
+
+      // Debug logging to see what we got from backend
+      print('📊 PlayerProvider: Received history data: $history');
+      print('📊 PlayerProvider: wins=${history['wins']}, losses=${history['losses']}, highScore=${history['high_score']}');
+
+      final playerModel = PlayerModel(
         displayName: user.displayName ?? "Adventurer",
         highScore: history['high_score'] ?? 0,
         wins: history['wins'] ?? 0,
         losses: history['losses'] ?? 0,
       );
-    } catch (e) {
+
+      print('📊 PlayerProvider: Created model - wins=${playerModel.wins}, losses=${playerModel.losses}, highScore=${playerModel.highScore}');
+
+      return playerModel;
+    } catch (e, stackTrace) {
+      print('❌ PlayerProvider ERROR: $e');
+      print('❌ Stack trace: $stackTrace');
       return PlayerModel(
         displayName: user.displayName ?? "Adventurer",
         highScore: 0,
@@ -67,6 +77,12 @@ class PlayerNotifier extends AsyncNotifier<PlayerModel> {
     if (state.value != null) {
       state = AsyncValue.data(state.value!.copyWith(playerClass: playerClass));
     }
+  }
+
+  /// Manually refresh player stats from server
+  Future<void> refresh() async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() => build());
   }
 }
 

@@ -10,7 +10,9 @@ async def get_player_history(player_id: str):
     Retrieve player stats and session history.
     Used by DM agent.
     """
+    from config import logger
     history = await firebase_service.get_player_history(player_id)
+    logger.info(f"📊 Player {player_id} stats: Wins={history.get('wins', 0)}, Losses={history.get('losses', 0)}, High Score={history.get('high_score', 0)}")
     return {"player_id": player_id, **history}
 
 @router.post("/players/{player_id}/session")

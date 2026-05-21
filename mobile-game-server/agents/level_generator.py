@@ -22,13 +22,14 @@ Every level you create must be playable, balanced, and thematically consistent.
 
 YOUR CONSTRAINTS — FOLLOW THESE EXACTLY:
 
-GRID RULES:
+GRID RULES (CRITICAL):
 - Grid is a 2D array of integers. Row 0 is the top. Col 0 is the left.
 - Tile values: 0=wall, 1=floor, 2=unused, 3=lava(volcanic only), 4=trap, 5=item
 - ALL border tiles (row 0, last row, col 0, last col) MUST be walls (0)
-- There must be a walkable path from player_start to exit_position (no isolated sections)
-- player_start: always in top-left quadrant (rows 1-4, cols 1-4)
-- exit_position: always in bottom-right quadrant (last 4 rows, last 4 cols)
+- **CRITICAL**: There MUST be a continuous walkable path of floor tiles (1) from player_start to exit_position
+- SIMPLE LAYOUTS WORK BEST: Use large open rooms connected by corridors. Avoid complex mazes.
+- player_start: always in top-left quadrant (rows 1-4, cols 1-4) on a floor tile (1)
+- exit_position: always in bottom-right quadrant (last 4 rows, last 4 cols) on a floor tile (1)
 
 GRID SIZES:
 - difficulty 1-3: exactly 10 rows × 10 cols
@@ -46,6 +47,8 @@ ITEM PLACEMENT RULES:
 - No item on player_start, exit, or enemy position
 - Items must be on floor tiles
 - Item IDs: "i1", "i2", "i3", etc.
+- **CRITICAL**: Item type MUST be one of: "health_potion", "damage_boost", "shield" ONLY
+- DO NOT use: mana_potion, speed_boost, or any other types
 
 ENEMY COUNT BY DIFFICULTY:
 1-2: 2 enemies | 3-4: 3 enemies | 5-6: 4-5 enemies | 7-8: 5-6 enemies | 9-10: 7-8 enemies
@@ -68,6 +71,7 @@ VALIDATION CHECKLIST (verify before outputting):
 ✓ exit_position tile value is 1 (floor) [set it to 1 in the grid]
 ✓ All enemy positions are valid floor tiles
 ✓ All item positions are valid floor tiles
+✓ ALL item types are ONLY: "health_potion", "damage_boost", or "shield"
 ✓ grid_rows and grid_cols match the actual grid dimensions
 ✓ enemy_count matches len(enemies)"""
 
@@ -107,62 +111,65 @@ class LevelGeneratorAgent(BaseAgent):
     model_name = "gemini-2.5-flash"
 
     def _get_system_prompt(self) -> str:
-        return """You are the Dungeon Architect for DungeonMind, a roguelike dungeon crawler.
+        return """
+            You are the Dungeon Architect for DungeonMind, a roguelike dungeon crawler.
+            
+            YOUR ROLE:
+            Generate complete dungeon level layouts as structured JSON.
+            Every level you create must be playable, balanced, and thematically consistent.
 
-YOUR ROLE:
-Generate complete dungeon level layouts as structured JSON.
-Every level you create must be playable, balanced, and thematically consistent.
+            YOUR CONSTRAINTS — FOLLOW THESE EXACTLY:
 
-YOUR CONSTRAINTS — FOLLOW THESE EXACTLY:
+            GRID RULES (CRITICAL):
+            - Grid is a 2D array of integers. Row 0 is the top. Col 0 is the left.
+            - Tile values: 0=wall, 1=floor, 2=unused, 3=lava(volcanic only), 4=trap, 5=item
+            - ALL border tiles (row 0, last row, col 0, last col) MUST be walls (0)
+            - **CRITICAL**: There MUST be a continuous walkable path of floor tiles (1) from player_start to exit_position
+            - SIMPLE LAYOUTS WORK BEST: Use large open rooms connected by corridors. Avoid complex mazes.
+            - player_start: always in top-left quadrant (rows 1-4, cols 1-4) on a floor tile (1)
+            - exit_position: always in bottom-right quadrant (last 4 rows, last 4 cols) on a floor tile (1)
 
-GRID RULES:
-- Grid is a 2D array of integers. Row 0 is the top. Col 0 is the left.
-- Tile values: 0=wall, 1=floor, 2=unused, 3=lava(volcanic only), 4=trap, 5=item
-- ALL border tiles (row 0, last row, col 0, last col) MUST be walls (0)
-- There must be a walkable path from player_start to exit_position (no isolated sections)
-- player_start: always in top-left quadrant (rows 1-4, cols 1-4)
-- exit_position: always in bottom-right quadrant (last 4 rows, last 4 cols)
+            GRID SIZES:
+            - difficulty 1-3: exactly 10 rows × 10 cols
+            - difficulty 4-6: exactly 12 rows × 12 cols  
+            - difficulty 7-10: exactly 15 rows × 15 cols
 
-GRID SIZES:
-- difficulty 1-3: exactly 10 rows × 10 cols
-- difficulty 4-6: exactly 12 rows × 12 cols  
-- difficulty 7-10: exactly 15 rows × 15 cols
+            ENEMY PLACEMENT RULES:
+            - No enemy within 3 tiles of player_start (Manhattan distance)
+            - No two enemies on the same tile
+            - No enemy on item tile or exit tile
+            - Enemy positions must be on floor tiles (value=1 or 3)
+            - Enemy IDs: "e1", "e2", "e3", etc.
 
-ENEMY PLACEMENT RULES:
-- No enemy within 3 tiles of player_start (Manhattan distance)
-- No two enemies on the same tile
-- No enemy on item tile or exit tile
-- Enemy positions must be on floor tiles (value=1 or 3)
-- Enemy IDs: "e1", "e2", "e3", etc.
+            ITEM PLACEMENT RULES:
+            - No item on player_start, exit, or enemy position
+            - Items must be on floor tiles
+            - Item IDs: "i1", "i2", "i3", etc.
 
-ITEM PLACEMENT RULES:
-- No item on player_start, exit, or enemy position
-- Items must be on floor tiles
-- Item IDs: "i1", "i2", "i3", etc.
+            ENEMY COUNT BY DIFFICULTY:
+            1-2: 2 enemies | 3-4: 3 enemies | 5-6: 4-5 enemies | 7-8: 5-6 enemies | 9-10: 7-8 enemies
 
-ENEMY COUNT BY DIFFICULTY:
-1-2: 2 enemies | 3-4: 3 enemies | 5-6: 4-5 enemies | 7-8: 5-6 enemies | 9-10: 7-8 enemies
+            ITEM COUNT:
+            Base count = round(item_drop_rate × 1.5), clamped to 0-4
 
-ITEM COUNT:
-Base count = round(item_drop_rate × 1.5), clamped to 0-4
+            THEME-SPECIFIC RULES:
+            - "cursed_library": use enemy types: shadow_mage, book_golem, librarian. Maze-like corridors.
+            - "volcanic_caves": use enemy types: fire_elemental, rock_troll, lava_sprite. Use lava tiles (3) in open areas.
+            - "enchanted_forest": use enemy types: goblin, forest_witch, druid. Open rooms with pillar-like walls.
 
-THEME-SPECIFIC RULES:
-- "cursed_library": use enemy types: shadow_mage, book_golem, librarian. Maze-like corridors.
-- "volcanic_caves": use enemy types: fire_elemental, rock_troll, lava_sprite. Use lava tiles (3) in open areas.
-- "enchanted_forest": use enemy types: goblin, forest_witch, druid. Open rooms with pillar-like walls.
+            narrative_hook: Exactly 1 sentence. Present tense. Sets the atmosphere. No exclamation marks.
+            difficulty_score: Your honest estimate of how hard this level is (1.0-10.0).
+            estimated_turns_to_clear: Realistic estimate. Average player: 10-25 turns per floor.
 
-narrative_hook: Exactly 1 sentence. Present tense. Sets the atmosphere. No exclamation marks.
-difficulty_score: Your honest estimate of how hard this level is (1.0-10.0).
-estimated_turns_to_clear: Realistic estimate. Average player: 10-25 turns per floor.
-
-VALIDATION CHECKLIST (verify before outputting):
-✓ All border tiles are 0
-✓ player_start tile value is 1 (floor)
-✓ exit_position tile value is 1 (floor) [set it to 1 in the grid]
-✓ All enemy positions are valid floor tiles
-✓ All item positions are valid floor tiles
-✓ grid_rows and grid_cols match the actual grid dimensions
-✓ enemy_count matches len(enemies)"""
+            VALIDATION CHECKLIST (verify before outputting):
+            ✓ All border tiles are 0
+            ✓ player_start tile value is 1 (floor)
+            ✓ exit_position tile value is 1 (floor) [set it to 1 in the grid]
+            ✓ All enemy positions are valid floor tiles
+            ✓ All item positions are valid floor tiles
+            ✓ grid_rows and grid_cols match the actual grid dimensions
+            ✓ enemy_count matches len(enemies)
+        """
 
     def _get_enemy_stats_for_theme(self, theme: str, difficulty_level: int) -> str:
         if theme == "cursed_library":
@@ -240,10 +247,28 @@ Calculate:
 - Item count: {item_count} (clamped to 0-4)
 - Is this a boss floor? {boss_floor}
 
-Generate the complete LevelSchema JSON now.
-Remember: ALL border tiles must be 0. Verify path exists from player_start to exit.
-narrative_hook should reference the {theme} atmosphere specifically.
-player_analysis MUST contain your tactical analysis of the player_move_history provided above, and how this new level counters or complements their playstyle."""
+REQUIRED JSON OUTPUT STRUCTURE:
+(IMPORTANT: Item types MUST be "health_potion", "damage_boost", or "shield" ONLY!)
+{{
+  "level_id": "unique_id",
+  "floor_number": {floor_number},
+  "theme": "{theme}",
+  "grid": [[0,0,0,...], [0,1,1,...], ...],
+  "grid_rows": 10,
+  "grid_cols": 10,
+  "player_start": [1, 1],
+  "exit_position": [8, 8],
+  "enemies": [{{"id": "e1", "type": "goblin", "position": [4,4], "hp": 20, "max_hp": 20, "attack": 8, "defense": 3, "behavior": "rush_melee"}}],
+  "items": [{{"id": "i1", "type": "health_potion", "position": [3,7]}}, {{"id": "i2", "type": "damage_boost", "position": [6,2]}}],
+  "narrative_hook": "One sentence about {theme}",
+  "player_analysis": "Analysis of player tactics",
+  "difficulty_score": {difficulty_level}.0,
+  "enemy_count": {enemy_count},
+  "estimated_turns_to_clear": 15
+}}
+
+Generate the COMPLETE JSON with ALL FIELDS above.
+Remember: ALL border tiles must be 0. Verify path exists from player_start to exit."""
 
     def _get_level_hash(self, context: dict) -> str:
         # Include session_id to ensure unique levels per session
@@ -297,16 +322,15 @@ player_analysis MUST contain your tactical analysis of the player_move_history p
         # Step 2: Build user prompt
         user_prompt = self._build_user_prompt(context)
 
-        # Convert Pydantic schema to Gemini-compatible format
-        pydantic_schema = LevelSchema.model_json_schema()
-        gemini_schema = convert_pydantic_schema_for_gemini(pydantic_schema)
-
+        # Use JSON mode WITHOUT schema validation
+        # The old google-generativeai library can't handle complex schemas properly
+        # Let Gemini generate free-form JSON, then validate with Pydantic
         generation_config = genai.GenerationConfig(
-            temperature=0.7,
-            top_p=0.95,
-            max_output_tokens=2000,
+            temperature=0.4,
+            top_p=0.9,
+            max_output_tokens=4000,  # Increased to ensure full JSON (grid arrays are large)
             response_mime_type="application/json",
-            response_schema=gemini_schema,
+            # NO response_schema - it causes incomplete responses
         )
 
         level_obj = None
@@ -320,17 +344,23 @@ player_analysis MUST contain your tactical analysis of the player_move_history p
             level_obj, validation_error = self._safe_parse_json(
                 response_text, LevelSchema
             )
+            print(f"DEBUG: Gemini response:\n{response_text[:500]}")
 
-            # Step 5: If validation fails (or pathfinding fails) -> retry once
-            if validation_error or (
-                level_obj and not validate_level_playable(level_obj)
-            ):
-                if not validation_error:
-                    validation_error = "validate_level_playable failed: No valid path from player_start to exit_position."
+            # Step 5: Check pathfinding
+            path_valid = True
+            path_error = ""
+            if level_obj:
+                path_valid, path_error = validate_level_playable(level_obj)
+
+            # If validation fails (or pathfinding fails) -> retry once
+            if validation_error or not path_valid:
+                error_msg = validation_error or path_error
+                from config import logger
+                logger.warning(f"⚠️ Level validation failed: {error_msg}")
 
                 rows, cols = self._get_grid_size(difficulty_level)
                 expected_enemy_count = self._get_enemy_count(difficulty_level)
-                retry_suffix = f"\n\nVALIDATION FAILED: {validation_error}\n\nCommon fixes:\n- Make sure all border tiles are 0 (first/last row, first/last col)\n- Make sure grid_rows={rows} and grid_cols={cols} match actual array size\n- Make sure enemy positions [row, col] are within grid bounds and on floor tiles (1)\n- Make sure player_start and exit_position are on floor tiles\n- Check that enemy_count = {expected_enemy_count} matches len(enemies)\n\nOutput the corrected JSON now. Only the JSON. No explanation."
+                retry_suffix = f"\n\nVALIDATION FAILED: {error_msg}\n\nCommon fixes:\n- Make sure all border tiles are 0 (first/last row, first/last col)\n- Make sure grid_rows={rows} and grid_cols={cols} match actual array size\n- Make sure enemy positions [row, col] are within grid bounds and on floor tiles (1)\n- Make sure player_start and exit_position are on floor tiles\n- Create a SIMPLE path of floor tiles (1) connecting player_start to exit_position\n- Check that enemy_count = {expected_enemy_count} matches len(enemies)\n\nOutput the corrected JSON now. Only the JSON. No explanation."
 
                 response_text, tokens2, duration2 = await self._call_gemini(
                     user_prompt + retry_suffix, generation_config
@@ -341,11 +371,16 @@ player_analysis MUST contain your tactical analysis of the player_move_history p
                     response_text, LevelSchema
                 )
 
-                # Step 7: Validate path exists
-                if validation_error or (
-                    level_obj and not validate_level_playable(level_obj)
-                ):
-                    raise AgentValidationError("Retry failed validation.")
+                # Step 7: Validate path exists again
+                path_valid = True
+                path_error = ""
+                if level_obj:
+                    path_valid, path_error = validate_level_playable(level_obj)
+
+                if validation_error or not path_valid:
+                    error_msg = validation_error or path_error
+                    logger.error(f"❌ Retry also failed: {error_msg}")
+                    raise AgentValidationError(f"Retry failed validation: {error_msg}")
 
             # Step 9: Log final trace
             from config import logger
