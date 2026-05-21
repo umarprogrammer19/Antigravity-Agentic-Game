@@ -7,7 +7,7 @@ from models.game_schemas import ActionResult
 
 
 class RefereeAgent(BaseAgent):
-    model_name = "gemini-2.5-flash"
+    model_name = "gemini-3.1-flash-lite"
 
     def _get_system_prompt(self) -> str:
         return """You are the referee for DungeonMind, a turn-based dungeon crawler.

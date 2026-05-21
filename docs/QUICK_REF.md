@@ -45,11 +45,11 @@ flutter run
 
 | Agent | File | Called When | Model | Fallback |
 |-------|------|-------------|-------|---------|
-| DungeonMasterAgent | agents/dungeon_master.py | Session start (once) | gemini-2.5-flash | FALLBACK_SESSION_PLAN |
-| LevelGeneratorAgent | agents/level_generator.py | Per floor (once) | gemini-2.5-flash | FALLBACK_LEVELS[theme] |
-| RivalAgent | agents/rival_agent.py | Per enemy per turn | gemini-2.5-flash | base_behavior_fallback() |
-| NarrativeAgent | agents/narrative_agent.py | Key game events | gemini-2.5-flash | NARRATIVE_FALLBACKS[event] |
-| RefereeAgent | agents/referee_agent.py | Per player action | gemini-2.5-flash (edge only) | Pure Python rules |
+| DungeonMasterAgent | agents/dungeon_master.py | Session start (once) | gemini-3.1-flash-lite | FALLBACK_SESSION_PLAN |
+| LevelGeneratorAgent | agents/level_generator.py | Per floor (once) | gemini-3.1-flash-lite | FALLBACK_LEVELS[theme] |
+| RivalAgent | agents/rival_agent.py | Per enemy per turn | gemini-3.1-flash-lite | base_behavior_fallback() |
+| NarrativeAgent | agents/narrative_agent.py | Key game events | gemini-3.1-flash-lite | NARRATIVE_FALLBACKS[event] |
+| RefereeAgent | agents/referee_agent.py | Per player action | gemini-3.1-flash-lite (edge only) | Pure Python rules |
 
 **All 5 agents run during active gameplay. They are the runtime orchestrators, not development tools.**
 

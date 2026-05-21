@@ -21,7 +21,7 @@ async def test_gemini_direct():
 
         # Create model
         model = genai.GenerativeModel(
-            model_name="gemini-2.5-flash",
+            model_name="gemini-3.1-flash-lite",
             system_instruction="You are a level generator for a dungeon crawler game. Generate JSON layouts."
         )
         print("[OK] Model created")

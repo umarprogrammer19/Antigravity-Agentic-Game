@@ -26,7 +26,7 @@ NARRATIVE_FALLBACKS = {
 
 
 class NarrativeAgent(BaseAgent):
-    model_name = "gemini-2.5-flash"
+    model_name = "gemini-3.1-flash-lite"
 
     def _get_system_prompt(self) -> str:
         return """You are the storyteller for DungeonMind, a dark fantasy dungeon crawler.

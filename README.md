@@ -27,10 +27,10 @@ These agents do not run during development. They run **during your gameplay sess
 
 | Agent | Runtime Role | Model | Triggered By |
 |-------|-------------|-------|-------------|
-| **DungeonMasterAgent** | Reads full player history, computes engagement level, personalizes session difficulty, theme, enemy speed, item drop rate | Gemini 2.5 Flash | Player taps NEW RUN |
-| **LevelGeneratorAgent** | Generates a unique dungeon floor as a validated JSON grid — enemies, items, layout, exit path | Gemini 2.5 Flash | Each floor start |
-| **RivalAgent** | Controls each enemy's turn. After 3 moves, reads player tactics and overrides base behavior to counter them | Gemini 2.5 Flash | Every enemy turn |
-| **NarrativeAgent** | Writes 1-2 sentence dark fantasy story text for floor clears, deaths, items, boss encounters | Gemini 2.5 Flash | Key game events |
+| **DungeonMasterAgent** | Reads full player history, computes engagement level, personalizes session difficulty, theme, enemy speed, item drop rate | Gemini 3.1 Flash Lite | Player taps NEW RUN |
+| **LevelGeneratorAgent** | Generates a unique dungeon floor as a validated JSON grid — enemies, items, layout, exit path | Gemini 3.1 Flash Lite | Each floor start |
+| **RivalAgent** | Controls each enemy's turn. After 3 moves, reads player tactics and overrides base behavior to counter them | Gemini 3.1 Flash Lite | Every enemy turn |
+| **NarrativeAgent** | Writes 1-2 sentence dark fantasy story text for floor clears, deaths, items, boss encounters | Gemini 3.1 Flash Lite | Key game events |
 | **RefereeAgent** | Validates every player action, computes combat damage, grants XP rewards, enforces rules | Pure Python + Gemini (edge cases) | Every player action |
 
 ### Why This Matters
@@ -137,7 +137,7 @@ To toggle baseline mode: set `BASELINE_MODE=true` in `.env`. All agent calls ret
 │  └────────────────────┬────────────────────────────┘   │
 │                       │                                  │
 │  ┌──────────────┐     │     ┌──────────────────────┐   │
-│  │ Redis Cache  │◄────┤────►│   Gemini 2.5 Flash   │   │
+│  │ Redis Cache  │◄────┤────►│   Gemini 3.1 Flash Lite   │   │
 │  │ (agent mem)  │     │     │   (runtime AI calls) │   │
 │  └──────────────┘     │     └──────────────────────┘   │
 │                       │                                  │
@@ -155,7 +155,7 @@ To toggle baseline mode: set `BASELINE_MODE=true` in `.env`. All agent calls ret
 |-------|-----------|
 | Mobile App | Flutter 3.x + Flame game engine + Riverpod |
 | Backend | Python FastAPI + uvicorn |
-| Runtime AI | Google Gemini 2.5 Flash |
+| Runtime AI | Google Gemini 3.1 Flash Lite |
 | Development Environment | Google Antigravity |
 | Database | Firebase Firestore + Realtime Database |
 | Agent Memory | Redis (tactics profile, session cache, rate limiting) |

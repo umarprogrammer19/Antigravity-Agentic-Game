@@ -11,17 +11,17 @@ genai.configure(api_key=api_key)
 
 
 async def test():
-    model = genai.GenerativeModel("gemini-2.5-flash-thinking-exp")
+    model = genai.GenerativeModel("gemini-3.1-flash-lite-thinking-exp")
     try:
-        print("Calling gemini-2.5-flash-thinking-exp...")
+        print("Calling gemini-3.1-flash-lite-thinking-exp...")
         response = await model.generate_content_async("Hello")
         print("Response:", response.text)
     except Exception as e:
         print("Error with thinking-exp:", e)
 
-    model_flash = genai.GenerativeModel("gemini-2.5-flash")
+    model_flash = genai.GenerativeModel("gemini-3.1-flash-lite")
     try:
-        print("Calling gemini-2.5-flash...")
+        print("Calling gemini-3.1-flash-lite...")
         response = await model_flash.generate_content_async("Hello")
         print("Response:", response.text)
     except Exception as e:

@@ -112,7 +112,7 @@
 
   <!-- Gemini -->
   <rect x="320" y="368" width="260" height="56" rx="6" fill="#1C2030" stroke="#4285F4" stroke-width="2"/>
-  <text x="450" y="386" text-anchor="middle" font-size="10" font-weight="bold" fill="#4285F4">Google Gemini 2.5 Flash</text>
+  <text x="450" y="386" text-anchor="middle" font-size="10" font-weight="bold" fill="#4285F4">Google Gemini 3.1 Flash Lite</text>
   <text x="450" y="400" text-anchor="middle" font-size="9" fill="#9CA3AF">response_mime_type: application/json</text>
   <text x="450" y="413" text-anchor="middle" font-size="9" fill="#9CA3AF">response_schema: Pydantic model  ·  temp 0.1–0.9</text>
 
@@ -158,6 +158,6 @@
   <text x="664" y="540" text-anchor="middle" font-size="10" fill="#EF4444">Game works. Game never adapts. Measurable difference.</text>
 
   <!-- Footer -->
-  <text x="450" y="572" text-anchor="middle" font-size="10" fill="#4B5563">Built with Google Antigravity  ·  Gemini 2.5 Flash  ·  Flutter + Flame  ·  FastAPI  ·  Firebase  ·  Redis</text>
+  <text x="450" y="572" text-anchor="middle" font-size="10" fill="#4B5563">Built with Google Antigravity  ·  Gemini 3.1 Flash Lite  ·  Flutter + Flame  ·  FastAPI  ·  Firebase  ·  Redis</text>
   <text x="450" y="588" text-anchor="middle" font-size="9" fill="#4B5563">DungeonMind — Google Antigravity Hackathon 2026  ·  "Remove the agents and the game stops working."</text>
 </svg>

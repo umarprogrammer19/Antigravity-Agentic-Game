@@ -27,7 +27,7 @@ generation_config = genai.GenerationConfig(
     response_mime_type="application/json",
     response_schema=SessionPlan.model_json_schema()
 )
-model_name = "gemini-2.5-flash-thinking-exp"  # Deeper reasoning for planning
+model_name = "gemini-3.1-flash-lite-thinking-exp"  # Deeper reasoning for planning
 ```
 
 ### SYSTEM_PROMPT
@@ -123,7 +123,7 @@ generation_config = genai.GenerationConfig(
     response_mime_type="application/json",
     response_schema=LevelSchema.model_json_schema()
 )
-model_name = "gemini-2.5-flash"
+model_name = "gemini-3.1-flash-lite"
 ```
 
 ### SYSTEM_PROMPT
@@ -245,7 +245,7 @@ generation_config = genai.GenerationConfig(
     response_mime_type="application/json",
     response_schema=EnemyAction.model_json_schema()
 )
-model_name = "gemini-2.5-flash"  # FASTEST — critical for <1 second latency
+model_name = "gemini-3.1-flash-lite"  # FASTEST — critical for <1 second latency
 ```
 
 ### SYSTEM_PROMPT
@@ -338,7 +338,7 @@ generation_config = genai.GenerationConfig(
     response_mime_type="application/json",
     response_schema=NarrativeResponse.model_json_schema()
 )
-model_name = "gemini-2.5-flash"
+model_name = "gemini-3.1-flash-lite"
 ```
 
 ### SYSTEM_PROMPT
@@ -434,7 +434,7 @@ generation_config = genai.GenerationConfig(
     response_mime_type="application/json",
     response_schema=ActionResult.model_json_schema()
 )
-model_name = "gemini-2.5-flash"
+model_name = "gemini-3.1-flash-lite"
 
 # NOTE: Referee only calls Gemini for edge cases.
 # Standard moves/attacks are validated with pure Python — no Gemini call.

@@ -54,7 +54,7 @@ def move_away(start, target, grid):
 
 
 class RivalAgent(BaseAgent):
-    model_name = "gemini-2.5-flash"
+    model_name = "gemini-3.1-flash-lite"
 
     def _get_system_prompt(self) -> str:
         return """You are the tactical AI controlling enemies in DungeonMind dungeon crawler.

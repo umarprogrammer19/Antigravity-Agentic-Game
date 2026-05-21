@@ -11,7 +11,7 @@ from utils.schema_converter import convert_pydantic_schema_for_gemini
 
 
 class LevelGeneratorAgent(BaseAgent):
-    model_name = "gemini-2.5-flash"
+    model_name = "gemini-3.1-flash-lite"
 
     def _get_system_prompt(self) -> str:
         return """You are the Dungeon Architect for DungeonMind, a roguelike dungeon crawler.
@@ -108,7 +108,7 @@ from config import redis_client
 
 
 class LevelGeneratorAgent(BaseAgent):
-    model_name = "gemini-2.5-flash"
+    model_name = "gemini-3.1-flash-lite"
 
     def _get_system_prompt(self) -> str:
         return """

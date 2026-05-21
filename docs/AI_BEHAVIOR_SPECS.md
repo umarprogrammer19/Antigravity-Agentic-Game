@@ -398,7 +398,7 @@ After applying counter: update updated_tactics (increment turns_observed, refine
 
 ### Latency Optimization
 ```
-Use gemini-2.5-flash (fastest model — CRITICAL for 1 second target)
+Use gemini-3.1-flash-lite (fastest model — CRITICAL for 1 second target)
 Check Redis cache first: f"npc_decision:{hash(enemy_state + player_last_moves)}"
 TTL: 30 seconds (same board state rarely repeats)
 If cache hit: return cached action instantly (0 AI latency)
@@ -482,7 +482,7 @@ Bad examples:
 ```
 
 ### Performance
-- Use gemini-2.5-flash (fast model)
+- Use gemini-3.1-flash-lite (fast model)
 - Cache by event_type + theme + floor (many events are similar) TTL=3600
 - If no internet / timeout: use hardcoded fallback texts per event type
 

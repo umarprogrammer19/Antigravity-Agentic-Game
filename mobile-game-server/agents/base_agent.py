@@ -17,7 +17,7 @@ class BaseAgent(ABC):
     Provides tracing, Gemini client, and error handling.
     """
 
-    model_name: str = "gemini-2.5-flash"
+    model_name: str = "gemini-3.1-flash-lite"
     agent_version: str = "1.0.0"
 
     def __init__(self, session_id: str, floor_number: int = 1, turn_number: int = 0):

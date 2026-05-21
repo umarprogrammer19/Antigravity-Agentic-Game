@@ -451,7 +451,7 @@ Task: Implement the AI agent system for DungeonMind.
 STEP 1 — Create mobile-game-server/agents/base_agent.py:
 - BaseAgent class with:
   - gemini_client (google.generativeai)
-  - model: "gemini-2.5-flash" 
+  - model: "gemini-3.1-flash-lite" 
   - trace_log: list of TraceEntry dicts
   - method: log_trace(step, reasoning, tool_called, tool_input, tool_output, decision)
   - method: run(context: dict) → abstract
@@ -987,7 +987,7 @@ except ValidationError as e:
 
 ### Latency Optimization
 
-- Use `gemini-2.5-flash` for all real-time calls (fastest)
+- Use `gemini-3.1-flash-lite` for all real-time calls (fastest)
 - Pre-generate next level in background while player plays current floor
 - Cache levels by hash(difficulty_params + theme) — reuse if same params
 - Timeout: 8 seconds max per agent call. If exceeded, return cached/fallback.
