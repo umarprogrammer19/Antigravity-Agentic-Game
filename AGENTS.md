@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This repository contains a Flutter client, a FastAPI backend, and supporting design docs.
+This repository contains a Flutter client, a FastAPI backend, and supporting design document.
 
 - `mobile_game/` is the Flutter app. Source lives in `lib/`, feature screens in `lib/features/`, shared state in `lib/providers/`, models in `lib/models/`, and Flame gameplay code in `lib/features/game/flame/`.
 - `mobile_game/test/` contains Flutter widget tests.
