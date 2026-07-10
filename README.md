@@ -377,3 +377,4 @@ DECISION: "Level valid. Path confirmed. difficulty_score=3.2"
 
 *DungeonMind — Where the AI thinks so the dungeon breathes.*
 *Built with Google Antigravity | Google Antigravity Hackathon 2026*
+*Developed By Hafiz Muhammad Umar Farooq*
