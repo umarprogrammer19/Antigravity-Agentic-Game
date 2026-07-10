@@ -243,7 +243,7 @@ Python 3.12+
 uv package manager
 Redis
 Firebase project
-Gemini API key (Google AI Studio)
+Gemini API key (Google AI Studio) => model gemini 3.1 flash-lite
 ```
 
 ### Backend Setup
