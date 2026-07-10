@@ -186,7 +186,7 @@ Google's Gemini model (accessed via Antigravity's AI infrastructure) powers all 
 
 ```
 antigravity-game/
-├── mobile-game/                    # Flutter app
+├── mobile-game/                    # Flutter application
 │   ├── lib/
 │   │   ├── main.dart
 │   │   ├── app/
