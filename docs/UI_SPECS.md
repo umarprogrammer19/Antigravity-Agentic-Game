@@ -172,7 +172,7 @@ Column(
 
 // Google Sign In button
 ElevatedButton.icon(
-  icon: Icon(Icons.g_mobiledata, size: 24),  // G icon (no Google image asset)
+  icon: Icon(Icons.g_mobiledata, size: 24),  
   label: Text("SIGN IN WITH GOOGLE"),
   style: ElevatedButton.styleFrom(
     backgroundColor: Colors.white,
