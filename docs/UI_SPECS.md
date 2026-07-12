@@ -492,9 +492,9 @@ class DPad extends StatelessWidget {
 ```
 ┌─────────────────────────────────┐
 │                                 │
-│     ▓▓▓▓▓▓░░░░ 60%             │
+│     ▓▓▓▓▓▓░░░░ 60%              │
 │                                 │
-│     🧠 Your Dungeon Master      │
+│     🧠 Your Dungeon Master     |
 │        is preparing your run... │
 │                                 │
 │     Step 2/3: Generating        │
