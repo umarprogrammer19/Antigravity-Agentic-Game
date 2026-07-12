@@ -600,10 +600,10 @@ class LoadingOverlay extends StatelessWidget {
 ### Layout
 ```
 ┌─────────────────────────────────┐
-│ [←]   AI DECISION LOG          │
+│ [←]   AI DECISION LOG           │
 │        Session · 14 decisions   │
 │                                 │
-│  [DM] [LV] [NPC] [NAR] [REF]   │  ← Filter chips
+│  [DM] [LV] [NPC] [NAR] [REF]    │  ← Filter chips
 │         All selected            │
 │                                 │
 │  ┌──────────────────────────┐   │
@@ -628,7 +628,7 @@ class LoadingOverlay extends StatelessWidget {
 │                                 │
 │  [More trace cards below...]    │
 │                                 │
-│  [📤 EXPORT]  [📸 SCREENSHOT]   │
+│  [📤 EXPORT]  [📸 SCREENSHOT]  │
 └─────────────────────────────────┘
 ```
 
