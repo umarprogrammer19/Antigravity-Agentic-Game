@@ -335,15 +335,6 @@ class ClassCard extends StatelessWidget {
   final PlayerClass playerClass;  // enum: warrior, mage, ranger
   final bool isSelected;
   final VoidCallback onTap;
-
-  // Card content:
-  // - Class name (Cinzel font, capitalized)
-  // - Class icon (Icons.shield for warrior, Icons.auto_fix_high for mage, Icons.sports_handball for ranger)
-  // - HP, ATK, DEF stats (3 rows)
-  // - 1-line description
-
-  // Selected state: gold border + slightly elevated background
-  // Unselected state: dim border, dark background
 }
 ```
 
