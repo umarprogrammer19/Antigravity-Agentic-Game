@@ -1,5 +1,4 @@
 # DungeonMind — UI Specifications
-### Screen Layouts, Component Specs, Design System, Navigation Flow
 ### Reference for: Flutter Architect Agent
 ---
 
