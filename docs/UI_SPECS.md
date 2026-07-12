@@ -224,13 +224,13 @@ SUCCESS:    Navigate to /character-select (first time) or /menu (returning)
 ├─────────────────────────────────┤
 │                                 │
 │  ┌──────────────────────────┐   │
-│  │  ⚔️  NEW RUN              │   │  ← Primary action, gold border
+│  │  ⚔️  NEW RUN            │   │ ← Primary action, gold border
 │  │  Your Dungeon Master     │   │
 │  │  is ready...             │   │
 │  └──────────────────────────┘   │
 │                                 │
 │  ┌─────────────┐ ┌────────────┐ │
-│  │ 📜 LAST RUN │ │ 🏆 RANKS   │ │  ← Secondary actions
+│  │ 📜 LAST RUN │ │ 🏆 RANKS  │ │  ← Secondary actions
 │  └─────────────┘ └────────────┘ │
 │                                 │
 │  ┌──────────────────────────┐   │
