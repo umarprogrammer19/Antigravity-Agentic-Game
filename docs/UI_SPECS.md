@@ -69,7 +69,7 @@ class DungeonText {
 
   // Body: Normal text, descriptions
   static const bodyMedium = TextStyle(
-    fontFamily: 'Crimson Text',  // Serif body (Google Fonts)
+    fontFamily: 'Crimson Text',  
     fontSize: 16,
     color: DungeonColors.textPrimary,
     height: 1.5,
