@@ -77,7 +77,7 @@ class DungeonText {
 
   // Caption: Small labels, metadata
   static const caption = TextStyle(
-    fontFamily: 'Source Code Pro',  // Monospace for trace logs
+    fontFamily: 'Source Code Pro', 
     fontSize: 11,
     color: DungeonColors.textSecondary,
     letterSpacing: 0.5,
