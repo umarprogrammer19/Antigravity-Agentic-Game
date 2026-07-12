@@ -480,14 +480,6 @@ class AiDecisionPanel extends ConsumerWidget {
 // Virtual d-pad for touch devices
 class DPad extends StatelessWidget {
   final Function(String direction) onDirectionTap;
-
-  // Layout: 3x3 grid, center empty
-  // Up: row 0 col 1
-  // Left: row 1 col 0
-  // Right: row 1 col 2
-  // Down: row 2 col 1
-  // Each button: 52x52dp, Icons.arrow_*
-  // Also listen to keyboard events (WASD + arrow keys) for emulator testing
 }
 ```
 
