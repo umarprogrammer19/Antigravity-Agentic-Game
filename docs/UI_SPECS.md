@@ -51,7 +51,7 @@ class DungeonColors {
 class DungeonText {
   // Display: Game title, floor headers
   static const displayLarge = TextStyle(
-    fontFamily: 'Cinzel',      // Medieval serif (Google Fonts)
+    fontFamily: 'Cinzel',     
     fontSize: 32,
     fontWeight: FontWeight.w700,
     color: DungeonColors.gold,
