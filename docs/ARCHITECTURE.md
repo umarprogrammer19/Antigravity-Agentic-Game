@@ -8,19 +8,19 @@
 DungeonMind uses a **3-tier mobile architecture**:
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                     FLUTTER APP  (mobile-game/)                   │
+┌────────────────────────────────────────────────────────────────────┐
+│                     FLUTTER APP  (mobile-game/)                    │
 │                                                                    │
-│  Screens: Auth → Menu → CharSelect → Game → Result → Traces       │
+│  Screens: Auth → Menu → CharSelect → Game → Result → Traces        │
 │  State:   Riverpod (authProvider, playerProvider, gameStateProvider│
 │            sessionProvider, traceProvider)                         │
-│  Engine:  Flame (DungeonGame, TileMapComponent, PlayerComponent,  │
+│  Engine:  Flame (DungeonGame, TileMapComponent, PlayerComponent,   │
 │            EnemyComponent, HUDComponent)                           │
-│  Router:  GoRouter (/auth /menu /character-select /game /result   │
+│  Router:  GoRouter (/auth /menu /character-select /game /result    │
 │            /traces/:id /leaderboard)                               │
 │  HTTP:    AgentService → FastAPI backend                           │
-│  Realtime:Firebase Realtime DB listener → ai_status updates       │
-└────────────────────────────┬─────────────────────────────────────┘
+│  Realtime:Firebase Realtime DB listener → ai_status updates        │
+└────────────────────────────┬───────────────────────────────────────┘
                              │ HTTP REST (JSON)
                              │ Port 8000
 ┌────────────────────────────▼─────────────────────────────────────┐
