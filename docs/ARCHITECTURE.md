@@ -36,16 +36,16 @@ DungeonMind uses a **3-tier mobile architecture**:
        │ google-generativeai SDK  │ Firebase Admin + redis.asyncio
        │                          │
 ┌──────▼────────┐  ┌─────────────▼───────────────────────────────┐
-│  GEMINI API   │  │  FIREBASE + REDIS                             │
-│               │  │                                               │
-│ flash-thinking│  │  Firestore: players/{uid}/stats              │
-│ (DM agent)    │  │             players/{uid}/sessions/{id}       │
-│               │  │             traces/{id}/entries/*             │
-│ flash         │  │             levels/{hash}  leaderboard/{uid} │
-│ (all others)  │  │                                               │
-└───────────────┘  │  Realtime DB: /sessions/{id}/live_state      │
-                   │  Redis:  session cache, level cache,          │
-                   │          player tactics, rate limiting         │
+│  GEMINI API   │  │  FIREBASE + REDIS                           │
+│               │  │                                             │
+│ flash-thinking│  │  Firestore: players/{uid}/stats             │
+│ (DM agent)    │  │             players/{uid}/sessions/{id}     │
+│               │  │             traces/{id}/entries/*           │
+│ flash         │  │             levels/{hash}  leaderboard/{uid}│
+│ (all others)  │  │                                             │
+└───────────────┘  │  Realtime DB: /sessions/{id}/live_state     │
+                   │  Redis:  session cache, level cache,        │
+                   │          player tactics, rate limiting      │
                    └─────────────────────────────────────────────┘
 ```
 
