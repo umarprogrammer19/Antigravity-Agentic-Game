@@ -24,15 +24,15 @@ DungeonMind uses a **3-tier mobile architecture**:
                              │ HTTP REST (JSON)
                              │ Port 8000
 ┌────────────────────────────▼─────────────────────────────────────┐
-│                   FASTAPI BACKEND  (mobile-game-server/)           │
-│                                                                    │
-│  Routers: /agent/* /traces/* /players/* /health                   │
-│  Agents:  DungeonMasterAgent  LevelGeneratorAgent  RivalAgent     │
-│           NarrativeAgent  RefereeAgent  (all inherit BaseAgent)   │
-│  Services:FirebaseService  RedisService  SessionService            │
-│  Models:  Pydantic (request/response/game schemas)                 │
-│  Fallbacks:FALLBACK_SESSION_PLAN  FALLBACK_LEVELS  NARRATIVES     │
-└──────┬──────────────────────────┬───────────────────────────────┘
+│                   FASTAPI BACKEND  (mobile-game-server/)         │
+│                                                                  │
+│  Routers: /agent/* /traces/* /players/* /health                  │
+│  Agents:  DungeonMasterAgent  LevelGeneratorAgent  RivalAgent    │
+│           NarrativeAgent  RefereeAgent  (all inherit BaseAgent)  │
+│  Services:FirebaseService  RedisService  SessionService          │
+│  Models:  Pydantic (request/response/game schemas)               │
+│  Fallbacks:FALLBACK_SESSION_PLAN  FALLBACK_LEVELS  NARRATIVES    │
+└──────┬──────────────────────────┬────────────────────────────────┘
        │ google-generativeai SDK  │ Firebase Admin + redis.asyncio
        │                          │
 ┌──────▼────────┐  ┌─────────────▼───────────────────────────────┐
